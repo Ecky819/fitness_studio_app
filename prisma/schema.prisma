@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum AccessEventStatus {
+  GRANTED
+  DENIED
+}
+
+enum Role {
+  USER
+  TRAINER
+  ADMIN
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  role          Role           @default(USER)
+  isBlocked     Boolean        @default(false)
+  refreshToken  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+  accessGrants  AccessGrant[]
+  payments      Payment[]
+  accessEvents  AccessEvent[]
+  invoices      Invoice[]
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String
+  stripePriceId String         @unique
+  amountCents   Int
+  interval      String
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id              String             @id @default(uuid())
+  stripeId        String             @unique
+  user            User               @relation(fields: [userId], references: [id])
+  userId          String
+  plan            Plan               @relation(fields: [planId], references: [id])
+  planId          String
+  status          SubscriptionStatus
+  validUntil      DateTime
+  currentPeriodEnd DateTime
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  payments        Payment[]
+  invoices        Invoice[]
+}
+
+model Payment {
+  id              String       @id @default(uuid())
+  stripePaymentId String?      @unique
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId  String
+  user            User         @relation(fields: [userId], references: [id])
+  userId          String
+  amountCents     Int
+  status          String
+  createdAt       DateTime     @default(now())
+}
+
+model AccessGrant {
+  id          String       @id @default(uuid())
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String
+  active      Boolean      @default(true)
+  validUntil  DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  events      AccessEvent[]
+}
+
+model AccessEvent {
+  id            String           @id @default(uuid())
+  accessGrant   AccessGrant      @relation(fields: [accessGrantId], references: [id])
+  accessGrantId String
+  user          User             @relation(fields: [userId], references: [id])
+  userId        String
+  status        AccessEventStatus
+  reason        String?
+  createdAt     DateTime         @default(now())
+}
+
+model StripeWebhookEvent {
+  eventId     String   @id
+  eventType   String
+  processedAt DateTime @default(now())
+}
+
+model AccessAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  doorId    String
+  grantId   String?
+  success   Boolean
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id             String       @id @default(uuid())
+  invoiceNo      String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  amountCents    Int
+  currency       String
+  pdfUrl         String
+  createdAt      DateTime     @default(now())
+}
+
+model Device {
+  id              String    @id @default(uuid())
+  name            String
+  doorId          String    @unique
+  location        String
+  firmwareVersion String?
+  isOnline        Boolean   @default(false)
+  lastSeenAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}

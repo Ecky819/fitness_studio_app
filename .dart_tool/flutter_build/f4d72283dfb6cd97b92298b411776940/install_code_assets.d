@@ -1,0 +1,1 @@
+ /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/flutter_build/f4d72283dfb6cd97b92298b411776940/native_assets.json: 

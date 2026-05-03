@@ -1,0 +1,24 @@
+name: fitness_studio_access
+description: Hybrid BLE + QR door access for fitness studios
+version: 1.0.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.0
+  qr_flutter: ^4.1.0
+  http: ^1.2.0
+  vibration: ^1.8.4
+  url_launcher: ^6.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
