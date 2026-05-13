@@ -204,7 +204,35 @@ model AccessAttempt {
 }
 ```
 
-## 🚀 Deployment
+## � Local Development
+
+1. Kopiere `.env.example` nach `.env` und fülle die Werte aus.
+2. Starte PostgreSQL, Redis und den Backend-Server:
+
+```bash
+npm install
+npm run build
+npm run start:dev
+```
+
+### Testen
+
+```bash
+npm run test
+npm run test:watch
+```
+
+### Environment Variablen
+
+- `DATABASE_URL` – PostgreSQL-Verbindung
+- `REDIS_URL` oder `REDIS_HOST`/`REDIS_PORT` – Redis-Verbindung
+- `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` – Tokensicherheit
+- `ACCESS_TOKEN_SECRET` – Kurzlebiges Türzugriffstoken
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` – Stripe-Zahlungsintegration
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` – E-Mail-Versand
+- `INVOICE_STORAGE_PATH` – Speicherort für erzeugte Rechnungs-PDFs
+
+## �🚀 Deployment
 
 ### Backend
 

@@ -4,6 +4,7 @@ import { AccessService } from './access.service';
 import { GenerateAccessTokenDto, ValidateAccessDto, GenerateBleChallengeDto, VerifyBleChallengeDto } from './dto/access.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 
 @Controller('access')
 export class AccessController {
@@ -15,6 +16,7 @@ export class AccessController {
         return this.accessService.generateAccessToken(user.sub, dto.doorId);
     }
 
+    @UseGuards(RateLimitGuard)
     @Post('validate')
     async validate(@Body() dto: ValidateAccessDto, @Req() req: Request) {
         return this.accessService.validateToken(dto.token, dto.doorId, req.ip ?? '');

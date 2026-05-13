@@ -424,14 +424,25 @@ export class AccessService {
         success: boolean,
         reason: string,
     ) {
-        await this.prisma.accessAttempt.create({
-            data: {
-                userId,
-                doorId,
-                grantId,
-                success,
-                reason,
-            },
+        // AccessAttempt: full audit trail (all attempts, including rejected ones)
+        const attemptPromise = this.prisma.accessAttempt.create({
+            data: { userId, doorId, grantId, success, reason },
         });
+
+        // AccessEvent: business event log tied to a grant (used by admin stats & analytics)
+        // Only created when a valid grant is known so the required FK is satisfied.
+        const eventPromise = grantId
+            ? this.prisma.accessEvent.create({
+                  data: {
+                      accessGrantId: grantId,
+                      userId,
+                      doorId,
+                      status: success ? 'GRANTED' : 'DENIED',
+                      reason,
+                  },
+              })
+            : Promise.resolve();
+
+        await Promise.all([attemptPromise, eventPromise]);
     }
 }

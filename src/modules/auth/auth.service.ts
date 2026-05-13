@@ -1,18 +1,25 @@
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../notifications/email.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
+        private readonly emailService: EmailService,
     ) { }
 
     async register(dto: RegisterDto) {
@@ -82,8 +89,8 @@ export class AuthService {
         return this.jwtService.signAsync(
             { sub: userId },
             {
-                secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refreshsecret',
-                expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d',
+                secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+                expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
             },
         );
     }
@@ -91,7 +98,7 @@ export class AuthService {
     async verifyRefreshToken(token: string) {
         try {
             return this.jwtService.verifyAsync(token, {
-                secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refreshsecret',
+                secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
             });
         } catch (error) {
             throw new ForbiddenException('Refresh token invalid');
@@ -105,11 +112,74 @@ export class AuthService {
 
         try {
             return await this.jwtService.verifyAsync(token, {
-                secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'supersecret',
+                secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
             });
         } catch (error) {
             throw new UnauthorizedException('Invalid access token');
         }
+    }
+
+    // ── Password Reset ──────────────────────────────────────────────────────
+
+    async forgotPassword(dto: ForgotPasswordDto) {
+        const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+
+        // Always return the same response regardless of whether the email exists.
+        // This prevents email enumeration attacks.
+        if (!user) {
+            this.logger.log(`Password reset requested for unknown email: ${dto.email}`);
+            return { message: 'If that email is registered, a reset link has been sent.' };
+        }
+
+        // Invalidate any previous tokens for this email
+        await this.prisma.passwordResetToken.deleteMany({ where: { email: dto.email } });
+
+        const token = randomUUID();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await this.prisma.passwordResetToken.create({
+            data: { email: dto.email, token, expiresAt },
+        });
+
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+        const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+        await this.emailService.sendPasswordResetEmail(dto.email, resetLink);
+
+        return { message: 'If that email is registered, a reset link has been sent.' };
+    }
+
+    async resetPassword(dto: ResetPasswordDto) {
+        const record = await this.prisma.passwordResetToken.findUnique({
+            where: { token: dto.token },
+        });
+
+        if (!record || record.expiresAt < new Date()) {
+            // Delete expired token if it exists
+            if (record) {
+                await this.prisma.passwordResetToken.delete({ where: { token: dto.token } });
+            }
+            throw new BadRequestException('Reset token is invalid or has expired');
+        }
+
+        const user = await this.prisma.user.findUnique({ where: { email: record.email } });
+        if (!user) {
+            await this.prisma.passwordResetToken.delete({ where: { token: dto.token } });
+            throw new BadRequestException('User not found');
+        }
+
+        const hashed = await bcrypt.hash(dto.password, 10);
+
+        await Promise.all([
+            this.prisma.user.update({
+                where: { id: user.id },
+                data: { password: hashed, refreshToken: null }, // invalidate all sessions
+            }),
+            this.prisma.passwordResetToken.delete({ where: { token: dto.token } }),
+        ]);
+
+        this.logger.log(`Password successfully reset for ${record.email}`);
+        return { message: 'Password updated successfully. Please log in.' };
     }
 
     async getProfile(userId: string) {

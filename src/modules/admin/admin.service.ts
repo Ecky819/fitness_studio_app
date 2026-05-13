@@ -134,32 +134,21 @@ export class AdminService {
     const where: Record<string, unknown> = {};
 
     if (query.userId) where.userId = query.userId;
+    if (query.doorId) where.doorId = query.doorId;
 
     if (query.dateFrom || query.dateTo) {
       where.createdAt = {
         ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
         ...(query.dateTo
-          ? {
-              lte: new Date(
-                new Date(query.dateTo).setHours(23, 59, 59, 999),
-              ),
-            }
+          ? { lte: new Date(new Date(query.dateTo).setHours(23, 59, 59, 999)) }
           : {}),
       };
     }
 
-    // doorId lives on the AccessGrant, not AccessEvent — filter via relation
-    const whereClause = query.doorId
-      ? {
-          ...where,
-          accessGrant: { user: { accessGrants: { some: {} } } },
-        }
-      : where;
-
     const [total, events] = await Promise.all([
-      this.prisma.accessEvent.count({ where: whereClause }),
+      this.prisma.accessEvent.count({ where }),
       this.prisma.accessEvent.findMany({
-        where: whereClause,
+        where,
         orderBy: { createdAt: 'desc' },
         skip: query.offset ?? 0,
         take: query.limit ?? 50,
@@ -167,6 +156,7 @@ export class AdminService {
           id: true,
           status: true,
           reason: true,
+          doorId: true,
           createdAt: true,
           user: { select: { id: true, email: true } },
           accessGrant: { select: { id: true } },
@@ -183,6 +173,7 @@ export class AdminService {
         userId: e.user.id,
         userEmail: e.user.email,
         grantId: e.accessGrant.id,
+        doorId: e.doorId,
         status: e.status,
         reason: e.reason,
         timestamp: e.createdAt,

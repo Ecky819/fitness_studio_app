@@ -5,9 +5,10 @@ import { BillingService } from './billing.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { InvoiceModule } from '../invoice/invoice.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-    imports: [ConfigModule, PrismaModule, AuthModule, InvoiceModule],
+    imports: [ConfigModule, PrismaModule, AuthModule, InvoiceModule, NotificationsModule],
     controllers: [BillingController],
     providers: [BillingService],
     exports: [BillingService],

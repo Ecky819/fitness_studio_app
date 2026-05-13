@@ -63,6 +63,9 @@ model Subscription {
   updatedAt       DateTime           @updatedAt
   payments        Payment[]
   invoices        Invoice[]
+
+  // Hot path: membership status checks on every access attempt
+  @@index([userId, status, validUntil])
 }
 
 model Payment {
@@ -75,6 +78,9 @@ model Payment {
   amountCents     Int
   status          String
   createdAt       DateTime     @default(now())
+
+  // Revenue analytics aggregations by status + time
+  @@index([status, createdAt])
 }
 
 model AccessGrant {
@@ -86,23 +92,33 @@ model AccessGrant {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   events      AccessEvent[]
+
+  // Hot path: grant lookup on every access attempt
+  @@index([userId, active, validUntil])
 }
 
 model AccessEvent {
-  id            String           @id @default(uuid())
-  accessGrant   AccessGrant      @relation(fields: [accessGrantId], references: [id])
+  id            String            @id @default(uuid())
+  accessGrant   AccessGrant       @relation(fields: [accessGrantId], references: [id])
   accessGrantId String
-  user          User             @relation(fields: [userId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
   userId        String
+  doorId        String?           // denormalized for efficient log filtering by door
   status        AccessEventStatus
   reason        String?
-  createdAt     DateTime         @default(now())
+  createdAt     DateTime          @default(now())
+
+  // Admin log queries filtered by user + time; analytics aggregations by time
+  @@index([userId, createdAt])
+  @@index([doorId, createdAt])
+  @@index([createdAt])
 }
 
 model StripeWebhookEvent {
-  eventId     String   @id
-  eventType   String
-  processedAt DateTime @default(now())
+  id        String   @id @default(uuid())
+  eventId   String   @unique
+  eventType String
+  createdAt DateTime @default(now())
 }
 
 model AccessAttempt {
@@ -113,6 +129,10 @@ model AccessAttempt {
   success   Boolean
   reason    String
   createdAt DateTime @default(now())
+
+  // Security audit: look up all attempts by user or by door
+  @@index([userId, createdAt])
+  @@index([doorId, createdAt])
 }
 
 model Invoice {
@@ -138,4 +158,16 @@ model Device {
   lastSeenAt      DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+// Single-use token emailed to the user; expires after 1 hour.
+// Deleted on consumption or when a new one is requested for the same email.
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }

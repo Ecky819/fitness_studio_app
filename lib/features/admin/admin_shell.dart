@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../design_system/colors/app_colors.dart';
 import '../../design_system/typography/app_text_styles.dart';
 import '../../design_system/spacing/app_spacing.dart';
+import 'pages/analytics_page.dart';
 import 'pages/dashboard_page.dart';
-import 'pages/users_page.dart';
 import 'pages/devices_page.dart';
 import 'pages/logs_page.dart';
+import 'pages/users_page.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -19,6 +20,7 @@ class _AdminShellState extends State<AdminShell> {
 
   static const _navItems = [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
+    _NavItem(icon: Icons.bar_chart_rounded, label: 'Analytics'),
     _NavItem(icon: Icons.people_rounded, label: 'Users'),
     _NavItem(icon: Icons.sensors_rounded, label: 'Devices'),
     _NavItem(icon: Icons.list_alt_rounded, label: 'Logs'),
@@ -41,6 +43,7 @@ class _AdminShellState extends State<AdminShell> {
               index: _selectedIndex,
               children: const [
                 DashboardPage(),
+                AnalyticsPage(),
                 UsersPage(),
                 DevicesPage(),
                 LogsPage(),

@@ -9,10 +9,12 @@ export const redisProvider: FactoryProvider = {
     inject: [ConfigService],
     useFactory: (configService: ConfigService) => {
         const redisUrl = configService.get<string>('REDIS_URL');
-        if (!redisUrl) {
-            throw new Error('REDIS_URL is not configured');
+        if (redisUrl) {
+            return new Redis(redisUrl);
         }
 
-        return new Redis(redisUrl);
+        const host = configService.get<string>('REDIS_HOST') || 'localhost';
+        const port = Number(configService.get<string>('REDIS_PORT') || 6379);
+        return new Redis({ host, port });
     },
 };

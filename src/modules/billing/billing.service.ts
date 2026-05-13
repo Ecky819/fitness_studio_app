@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InvoiceService } from '../invoice/invoice.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BillingService {
@@ -13,6 +14,7 @@ export class BillingService {
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly invoiceService: InvoiceService,
+        private readonly notificationsService: NotificationsService,
     ) {
         const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
         if (!stripeKey) {
@@ -35,6 +37,8 @@ export class BillingService {
             throw new BadRequestException('Authenticated user not found');
         }
 
+        const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://example.com').replace(/\/$/, '');
+
         return this.stripe.checkout.sessions.create({
             mode: 'subscription',
             customer_email: user.email,
@@ -47,8 +51,8 @@ export class BillingService {
                     userId: user.id,
                 },
             },
-            success_url: this.configService.get<string>('FRONTEND_URL') || 'https://example.com/success',
-            cancel_url: this.configService.get<string>('FRONTEND_URL') || 'https://example.com/cancel',
+            success_url: `${frontendUrl}/success`,
+            cancel_url: `${frontendUrl}/cancel`,
         });
     }
 
@@ -234,6 +238,10 @@ export class BillingService {
             where: { userId: subscription.userId, active: true },
             data: { active: false },
         });
+
+        // Send payment failed notification
+        const amount = invoice.total ? `$${(invoice.total / 100).toFixed(2)}` : 'unknown amount';
+        await this.notificationsService.sendPaymentFailedNotification(subscription.userId, amount);
     }
 
     private async onSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -251,5 +259,11 @@ export class BillingService {
             where: { userId: subscriptionRecord.userId, active: true },
             data: { active: false },
         });
+
+        // Send access revoked notification
+        await this.notificationsService.sendAccessRevokedNotification(
+            subscriptionRecord.userId,
+            'Subscription cancelled'
+        );
     }
 }

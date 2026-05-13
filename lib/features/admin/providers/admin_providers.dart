@@ -1,304 +1,197 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/api_service.dart';
 import '../models/admin_models.dart';
 
-// ===== MOCK DATA =====
+// ── Stats ──────────────────────────────────────────────────────────────────
 
-final _mockUsers = [
-  AdminUser(
-    id: 'u1',
-    name: 'Max Mustermann',
-    email: 'max.mustermann@example.com',
-    membershipStatus: MembershipStatus.active,
-    plan: 'Premium',
-    validUntil: DateTime(2026, 6, 30),
-    isBlocked: false,
-    createdAt: DateTime(2025, 1, 15),
-  ),
-  AdminUser(
-    id: 'u2',
-    name: 'Anna Schmidt',
-    email: 'anna.schmidt@example.com',
-    membershipStatus: MembershipStatus.active,
-    plan: 'Basic',
-    validUntil: DateTime(2026, 5, 31),
-    isBlocked: false,
-    createdAt: DateTime(2025, 3, 1),
-  ),
-  AdminUser(
-    id: 'u3',
-    name: 'Tom Weber',
-    email: 'tom.weber@example.com',
-    membershipStatus: MembershipStatus.expired,
-    plan: 'Premium',
-    validUntil: DateTime(2026, 4, 1),
-    isBlocked: false,
-    createdAt: DateTime(2024, 11, 20),
-  ),
-  AdminUser(
-    id: 'u4',
-    name: 'Lisa König',
-    email: 'lisa.koenig@example.com',
-    membershipStatus: MembershipStatus.active,
-    plan: 'Annual',
-    validUntil: DateTime(2027, 1, 1),
-    isBlocked: false,
-    createdAt: DateTime(2026, 1, 1),
-  ),
-  AdminUser(
-    id: 'u5',
-    name: 'Hans Bauer',
-    email: 'hans.bauer@example.com',
-    membershipStatus: MembershipStatus.canceled,
-    plan: 'Basic',
-    validUntil: DateTime(2026, 3, 15),
-    isBlocked: true,
-    createdAt: DateTime(2024, 8, 10),
-  ),
-  AdminUser(
-    id: 'u6',
-    name: 'Maria Hoffmann',
-    email: 'maria.hoffmann@example.com',
-    membershipStatus: MembershipStatus.active,
-    plan: 'Premium',
-    validUntil: DateTime(2026, 7, 31),
-    isBlocked: false,
-    createdAt: DateTime(2025, 7, 1),
-  ),
-  AdminUser(
-    id: 'u7',
-    name: 'Klaus Fischer',
-    email: 'k.fischer@example.com',
-    membershipStatus: MembershipStatus.pastDue,
-    plan: 'Annual',
-    validUntil: DateTime(2026, 4, 30),
-    isBlocked: false,
-    createdAt: DateTime(2025, 4, 30),
-  ),
-  AdminUser(
-    id: 'u8',
-    name: 'Sophie Wagner',
-    email: 'sophie.w@example.com',
-    membershipStatus: MembershipStatus.active,
-    plan: 'Premium',
-    validUntil: DateTime(2026, 8, 1),
-    isBlocked: false,
-    createdAt: DateTime(2026, 2, 14),
-  ),
-];
+final adminStatsProvider = FutureProvider.autoDispose<AdminStats>((ref) async {
+  final data = await ApiService.getAdminStats();
+  return AdminStats(
+    totalUsers: data['totalUsers'] as int? ?? 0,
+    activeSubscriptions: data['activeSubscriptions'] as int? ?? 0,
+    devicesOnline: data['onlineDevices'] as int? ?? 0,
+    totalDevices: data['totalDevices'] as int? ?? 0,
+    todayAccessCount: data['todayGranted'] as int? ?? 0,
+    failedAccessToday: data['todayDenied'] as int? ?? 0,
+  );
+});
 
-final _mockDevices = [
-  Device(
-    id: 'd1',
-    name: 'Main Entrance',
-    location: 'Front Door',
-    isOnline: true,
-    lastActivity: DateTime.now().subtract(const Duration(minutes: 2)),
-    firmwareVersion: 'v2.3.1',
-    accessCount: 142,
-  ),
-  Device(
-    id: 'd2',
-    name: 'Side Door',
-    location: 'Side Entrance',
-    isOnline: true,
-    lastActivity: DateTime.now().subtract(const Duration(minutes: 15)),
-    firmwareVersion: 'v2.3.1',
-    accessCount: 38,
-  ),
-  Device(
-    id: 'd3',
-    name: 'Gym Area',
-    location: 'Ground Floor',
-    isOnline: false,
-    lastActivity: DateTime.now().subtract(const Duration(hours: 4)),
-    firmwareVersion: 'v2.2.0',
-    accessCount: 0,
-  ),
-  Device(
-    id: 'd4',
-    name: 'Locker Room',
-    location: 'First Floor',
-    isOnline: true,
-    lastActivity: DateTime.now().subtract(const Duration(minutes: 5)),
-    firmwareVersion: 'v2.3.1',
-    accessCount: 87,
-  ),
-];
+// ── Users ──────────────────────────────────────────────────────────────────
 
-List<AccessLog> _buildMockLogs() {
-  final now = DateTime.now();
-  final users = [
-    ('u1', 'Max Mustermann'),
-    ('u2', 'Anna Schmidt'),
-    ('u3', 'Tom Weber'),
-    ('u4', 'Lisa König'),
-    ('u6', 'Maria Hoffmann'),
-    ('u8', 'Sophie Wagner'),
-  ];
-  final doors = [
-    ('d1', 'Main Entrance'),
-    ('d2', 'Side Door'),
-    ('d4', 'Locker Room'),
-  ];
-  const grantedReasons = ['QR Token Valid', 'BLE Token Valid'];
-  const deniedReasons = [
-    'Membership Expired',
-    'User Blocked',
-    'Invalid Token',
-    'Access Grant Revoked',
-  ];
+class UsersState {
+  final List<AdminUser> users;
+  final bool isLoading;
+  final String? error;
+  final String searchQuery;
 
-  return List.generate(50, (i) {
-    final user = users[i % users.length];
-    final door = doors[i % doors.length];
-    final granted = i % 5 != 0;
-    return AccessLog(
-      id: 'log$i',
-      userId: user.$1,
-      userName: user.$2,
-      deviceId: door.$1,
-      deviceName: door.$2,
-      timestamp: now.subtract(Duration(minutes: i * 18)),
-      granted: granted,
-      reason: granted
-          ? grantedReasons[i % grantedReasons.length]
-          : deniedReasons[i % deniedReasons.length],
-    );
+  const UsersState({
+    this.users = const [],
+    this.isLoading = false,
+    this.error,
+    this.searchQuery = '',
   });
+
+  UsersState copyWith({
+    List<AdminUser>? users,
+    bool? isLoading,
+    String? error,
+    String? searchQuery,
+  }) =>
+      UsersState(
+        users: users ?? this.users,
+        isLoading: isLoading ?? this.isLoading,
+        error: error,
+        searchQuery: searchQuery ?? this.searchQuery,
+      );
 }
 
-final _mockLogs = _buildMockLogs();
+class UsersNotifier extends AsyncNotifier<List<AdminUser>> {
+  @override
+  Future<List<AdminUser>> build() => _fetchUsers();
 
-// ===== USERS =====
+  Future<List<AdminUser>> _fetchUsers({String? search}) async {
+    final data = await ApiService.getAdminUsers(search: search);
+    final list = data['data'] as List? ?? (data.containsKey('data') ? [] : [data]);
 
-class UsersNotifier extends StateNotifier<List<AdminUser>> {
-  UsersNotifier() : super(_mockUsers);
+    // API returns array directly or wrapped in data key
+    final rawList = data.values.first is List
+        ? data.values.first as List
+        : [data];
 
-  void toggleBlock(String userId) {
-    state = state.map((u) {
-      if (u.id != userId) return u;
-      return u.copyWith(isBlocked: !u.isBlocked);
+    return (rawList).map((e) {
+      final u = e as Map<String, dynamic>;
+      final membership = u['membership'] as Map<String, dynamic>?;
+      return AdminUser(
+        id: u['id'] as String,
+        name: u['email'] as String, // backend returns email, name not stored yet
+        email: u['email'] as String,
+        membershipStatus: _parseMembershipStatus(
+          membership?['status'] as String?,
+        ),
+        plan: membership?['plan'] as String? ?? '—',
+        validUntil: membership != null
+            ? DateTime.tryParse(membership['validUntil'] as String? ?? '') ??
+                DateTime.now()
+            : DateTime.now(),
+        isBlocked: u['isBlocked'] as bool? ?? false,
+        createdAt: DateTime.tryParse(u['createdAt'] as String? ?? '') ??
+            DateTime.now(),
+      );
     }).toList();
+  }
+
+  Future<void> search(String query) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetchUsers(search: query));
+  }
+
+  Future<void> toggleBlock(String userId) async {
+    await ApiService.toggleUserBlock(userId);
+    // Refresh list after toggle
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetchUsers);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetchUsers);
+  }
+
+  MembershipStatus _parseMembershipStatus(String? status) {
+    switch (status) {
+      case 'ACTIVE':
+        return MembershipStatus.active;
+      case 'PAST_DUE':
+        return MembershipStatus.pastDue;
+      case 'CANCELED':
+        return MembershipStatus.canceled;
+      default:
+        return MembershipStatus.expired;
+    }
   }
 }
 
 final usersNotifierProvider =
-    StateNotifierProvider<UsersNotifier, List<AdminUser>>(
-  (ref) => UsersNotifier(),
-);
+    AsyncNotifierProvider<UsersNotifier, List<AdminUser>>(UsersNotifier.new);
 
-// ===== DEVICES =====
+// ── Devices ────────────────────────────────────────────────────────────────
 
-final devicesProvider = Provider<List<Device>>((ref) => _mockDevices);
-
-// ===== STATS =====
-
-final adminStatsProvider = Provider<AdminStats>((ref) {
-  final users = ref.watch(usersNotifierProvider);
-  final today = DateTime.now();
-
-  final activeUsers = users
-      .where((u) =>
-          u.membershipStatus == MembershipStatus.active && !u.isBlocked)
-      .length;
-
-  final onlineDevices = _mockDevices.where((d) => d.isOnline).length;
-
-  final todayLogs = _mockLogs.where((l) =>
-      l.timestamp.year == today.year &&
-      l.timestamp.month == today.month &&
-      l.timestamp.day == today.day);
-
-  return AdminStats(
-    activeUsers: activeUsers,
-    devicesOnline: onlineDevices,
-    totalDevices: _mockDevices.length,
-    todayAccessCount: todayLogs.where((l) => l.granted).length,
-    failedAccessToday: todayLogs.where((l) => !l.granted).length,
-  );
-});
-
-// ===== LOGS =====
-
-final allLogsProvider = Provider<List<AccessLog>>((ref) => _mockLogs);
-
-final recentLogsProvider = Provider<List<AccessLog>>(
-  (ref) => ref.watch(allLogsProvider).take(10).toList(),
-);
-
-class LogFilterNotifier extends StateNotifier<LogFilter> {
-  LogFilterNotifier() : super(const LogFilter());
-
-  void setUserSearch(String search) {
-    state = LogFilter(
-      userSearch: search,
-      deviceId: state.deviceId,
-      dateFrom: state.dateFrom,
-      dateTo: state.dateTo,
+final devicesProvider = FutureProvider.autoDispose<List<Device>>((ref) async {
+  final data = await ApiService.getAdminDevices();
+  final list = data['data'] as List? ?? [];
+  return list.map((e) {
+    final d = e as Map<String, dynamic>;
+    return Device(
+      id: d['id'] as String,
+      name: d['name'] as String,
+      location: d['location'] as String,
+      isOnline: d['isOnline'] as bool? ?? false,
+      lastActivity: DateTime.tryParse(d['lastSeenAt'] as String? ?? '') ??
+          DateTime.now(),
+      firmwareVersion: d['firmwareVersion'] as String? ?? '—',
+      accessCount: 0, // not returned by current backend endpoint
     );
-  }
-
-  void setDeviceId(String? deviceId) {
-    state = LogFilter(
-      userSearch: state.userSearch,
-      deviceId: deviceId,
-      dateFrom: state.dateFrom,
-      dateTo: state.dateTo,
-    );
-  }
-
-  void setDateFrom(DateTime? date) {
-    state = LogFilter(
-      userSearch: state.userSearch,
-      deviceId: state.deviceId,
-      dateFrom: date,
-      dateTo: state.dateTo,
-    );
-  }
-
-  void setDateTo(DateTime? date) {
-    state = LogFilter(
-      userSearch: state.userSearch,
-      deviceId: state.deviceId,
-      dateFrom: state.dateFrom,
-      dateTo: date,
-    );
-  }
-
-  void clearAll() => state = const LogFilter();
-}
-
-final logFilterProvider =
-    StateNotifierProvider<LogFilterNotifier, LogFilter>(
-  (ref) => LogFilterNotifier(),
-);
-
-final filteredLogsProvider = Provider<List<AccessLog>>((ref) {
-  final logs = ref.watch(allLogsProvider);
-  final filter = ref.watch(logFilterProvider);
-
-  return logs.where((log) {
-    if (filter.userSearch.isNotEmpty &&
-        !log.userName.toLowerCase().contains(filter.userSearch.toLowerCase())) {
-      return false;
-    }
-    if (filter.deviceId != null && log.deviceId != filter.deviceId) {
-      return false;
-    }
-    if (filter.dateFrom != null && log.timestamp.isBefore(filter.dateFrom!)) {
-      return false;
-    }
-    if (filter.dateTo != null) {
-      final end = DateTime(
-        filter.dateTo!.year,
-        filter.dateTo!.month,
-        filter.dateTo!.day,
-        23,
-        59,
-        59,
-      );
-      if (log.timestamp.isAfter(end)) return false;
-    }
-    return true;
   }).toList();
 });
+
+// ── Logs ───────────────────────────────────────────────────────────────────
+
+class LogFilter {
+  final String userSearch;
+  final String? doorId;
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
+
+  const LogFilter({
+    this.userSearch = '',
+    this.doorId,
+    this.dateFrom,
+    this.dateTo,
+  });
+}
+
+class LogsNotifier extends AsyncNotifier<List<AccessLog>> {
+  LogFilter _filter = const LogFilter();
+
+  @override
+  Future<List<AccessLog>> build() => _fetchLogs();
+
+  Future<List<AccessLog>> _fetchLogs() async {
+    final data = await ApiService.getAdminLogs(
+      doorId: _filter.doorId,
+      dateFrom: _filter.dateFrom?.toIso8601String().split('T').first,
+      dateTo: _filter.dateTo?.toIso8601String().split('T').first,
+    );
+    final list = data['data'] as List? ?? [];
+    return list.map((e) {
+      final l = e as Map<String, dynamic>;
+      return AccessLog(
+        id: l['id'] as String,
+        userId: l['userId'] as String,
+        userName: l['userEmail'] as String? ?? l['userId'] as String,
+        deviceId: l['doorId'] as String? ?? '',
+        deviceName: l['doorId'] as String? ?? 'Unknown Door',
+        timestamp:
+            DateTime.tryParse(l['timestamp'] as String? ?? '') ?? DateTime.now(),
+        granted: l['status'] == 'GRANTED',
+        reason: l['reason'] as String? ?? '',
+      );
+    }).toList();
+  }
+
+  Future<void> applyFilter(LogFilter filter) async {
+    _filter = filter;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetchLogs);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetchLogs);
+  }
+}
+
+final logsNotifierProvider =
+    AsyncNotifierProvider<LogsNotifier, List<AccessLog>>(LogsNotifier.new);
+
+final logFilterProvider = StateProvider<LogFilter>((_) => const LogFilter());

@@ -1,0 +1,65 @@
+version: '3.9'
+
+# ── NextGen Gym OS — Production Override ──────────────────────────────────────
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Requires a .env.production file or secrets manager integration.
+# The app image must be pre-built and pushed to a registry.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_prod:/var/lib/postgresql/data
+    # Never expose port 5432 in production — internal network only
+    expose:
+      - '5432'
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: >
+      redis-server
+        --appendonly yes
+        --requirepass ${REDIS_PASSWORD}
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+    expose:
+      - '6379'
+    volumes:
+      - redis_prod:/data
+
+  app:
+    image: ${REGISTRY}/gym-os-backend:${IMAGE_TAG:-latest}
+    restart: always
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first   # rolling deploy — keep one replica alive
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+volumes:
+  postgres_prod:
+    driver: local
+  redis_prod:
+    driver: local
