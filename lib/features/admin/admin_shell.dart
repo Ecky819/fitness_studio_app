@@ -5,6 +5,7 @@ import '../../design_system/spacing/app_spacing.dart';
 import 'pages/analytics_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/devices_page.dart';
+import 'pages/insights_page.dart';
 import 'pages/logs_page.dart';
 import 'pages/users_page.dart';
 
@@ -21,6 +22,7 @@ class _AdminShellState extends State<AdminShell> {
   static const _navItems = [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
     _NavItem(icon: Icons.bar_chart_rounded, label: 'Analytics'),
+    _NavItem(icon: Icons.psychology_rounded, label: 'AI Insights'),
     _NavItem(icon: Icons.people_rounded, label: 'Users'),
     _NavItem(icon: Icons.sensors_rounded, label: 'Devices'),
     _NavItem(icon: Icons.list_alt_rounded, label: 'Logs'),
@@ -44,6 +46,7 @@ class _AdminShellState extends State<AdminShell> {
               children: const [
                 DashboardPage(),
                 AnalyticsPage(),
+                InsightsPage(),
                 UsersPage(),
                 DevicesPage(),
                 LogsPage(),

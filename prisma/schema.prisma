@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -22,49 +26,130 @@ enum Role {
   USER
   TRAINER
   ADMIN
+  SUPER_ADMIN // Platform-level role; not scoped to a tenant
 }
 
+enum TenantStatus {
+  TRIAL      // 14-day trial, limited features
+  ACTIVE     // Paid subscription
+  SUSPENDED  // Payment failed or admin action
+  CANCELLED  // Account closed
+}
+
+enum SaasPlan {
+  STARTER    // 1 door, ≤100 members, basic analytics
+  PRO        // 5 doors, ≤500 members, full analytics + white-label
+  ENTERPRISE // Unlimited doors/members, Stripe Connect, API access
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tenant (the gym operator — top-level isolation boundary)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id       String       @id @default(uuid())
+  name     String                         // "Iron Palace GmbH"
+  slug     String       @unique           // "iron-palace" → iron-palace.gymOS.io
+  status   TenantStatus @default(TRIAL)
+  plan     SaasPlan     @default(STARTER)
+
+  // Stripe Connect — each tenant collects payments into their own account.
+  // Platform earns via application_fee_amount on each transaction.
+  stripeCustomerId  String?  // Platform-level Stripe customer
+  stripeAccountId   String?  // Connected account (Express/Standard)
+
+  trialEndsAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  config  TenantConfig?
+  users   User[]
+  plans   Plan[]
+  devices Device[]
+
+  @@index([slug])
+}
+
+// White-label configuration per tenant
+model TenantConfig {
+  id       String @id @default(uuid())
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String @unique
+
+  gymName       String
+  primaryColor  String  @default("#00D4FF") // hex
+  accentColor   String  @default("#00FF88")
+  logoUrl       String?
+  faviconUrl    String?
+  supportEmail  String?
+  websiteUrl    String?
+  timezone      String  @default("Europe/Berlin")
+
+  // Feature flags as JSON — keyed by SaasFeature enum strings.
+  // Example: {"ADVANCED_ANALYTICS": true, "MULTI_DOOR": false}
+  features Json @default("{}")
+
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core domain models (all scoped to a Tenant)
+// ─────────────────────────────────────────────────────────────────────────────
+
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  role          Role           @default(USER)
-  isBlocked     Boolean        @default(false)
-  refreshToken  String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id           String  @id @default(uuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  email        String
+  password     String
+  role         Role    @default(USER)
+  isBlocked    Boolean @default(false)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   subscriptions Subscription[]
   accessGrants  AccessGrant[]
   payments      Payment[]
   accessEvents  AccessEvent[]
   invoices      Invoice[]
+
+  // Email is unique per tenant, not globally
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 model Plan {
-  id            String         @id @default(uuid())
+  id            String  @id @default(uuid())
+  tenantId      String
+  tenant        Tenant  @relation(fields: [tenantId], references: [id])
   name          String
-  stripePriceId String         @unique
+  stripePriceId String  @unique
   amountCents   Int
   interval      String
+  isActive      Boolean @default(true)
+
   subscriptions Subscription[]
+
+  @@index([tenantId])
 }
 
 model Subscription {
-  id              String             @id @default(uuid())
-  stripeId        String             @unique
-  user            User               @relation(fields: [userId], references: [id])
-  userId          String
-  plan            Plan               @relation(fields: [planId], references: [id])
-  planId          String
-  status          SubscriptionStatus
-  validUntil      DateTime
+  id               String             @id @default(uuid())
+  stripeId         String             @unique
+  user             User               @relation(fields: [userId], references: [id])
+  userId           String
+  plan             Plan               @relation(fields: [planId], references: [id])
+  planId           String
+  status           SubscriptionStatus
+  validUntil       DateTime
   currentPeriodEnd DateTime
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  payments        Payment[]
-  invoices        Invoice[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  // Hot path: membership status checks on every access attempt
+  payments Payment[]
+  invoices Invoice[]
+
   @@index([userId, status, validUntil])
 }
 
@@ -79,21 +164,21 @@ model Payment {
   status          String
   createdAt       DateTime     @default(now())
 
-  // Revenue analytics aggregations by status + time
   @@index([status, createdAt])
+  @@index([userId])
 }
 
 model AccessGrant {
-  id          String       @id @default(uuid())
-  user        User         @relation(fields: [userId], references: [id])
-  userId      String
-  active      Boolean      @default(true)
-  validUntil  DateTime
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  events      AccessEvent[]
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  active     Boolean  @default(true)
+  validUntil DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  // Hot path: grant lookup on every access attempt
+  events AccessEvent[]
+
   @@index([userId, active, validUntil])
 }
 
@@ -103,36 +188,30 @@ model AccessEvent {
   accessGrantId String
   user          User              @relation(fields: [userId], references: [id])
   userId        String
-  doorId        String?           // denormalized for efficient log filtering by door
+  doorId        String?
   status        AccessEventStatus
   reason        String?
   createdAt     DateTime          @default(now())
 
-  // Admin log queries filtered by user + time; analytics aggregations by time
   @@index([userId, createdAt])
   @@index([doorId, createdAt])
   @@index([createdAt])
 }
 
-model StripeWebhookEvent {
-  id        String   @id @default(uuid())
-  eventId   String   @unique
-  eventType String
-  createdAt DateTime @default(now())
-}
+model Device {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  name            String
+  doorId          String    @unique
+  location        String
+  firmwareVersion String?
+  isOnline        Boolean   @default(false)
+  lastSeenAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-model AccessAttempt {
-  id        String   @id @default(uuid())
-  userId    String
-  doorId    String
-  grantId   String?
-  success   Boolean
-  reason    String
-  createdAt DateTime @default(now())
-
-  // Security audit: look up all attempts by user or by door
-  @@index([userId, createdAt])
-  @@index([doorId, createdAt])
+  @@index([tenantId])
 }
 
 model Invoice {
@@ -148,26 +227,89 @@ model Invoice {
   createdAt      DateTime     @default(now())
 }
 
-model Device {
-  id              String    @id @default(uuid())
-  name            String
-  doorId          String    @unique
-  location        String
-  firmwareVersion String?
-  isOnline        Boolean   @default(false)
-  lastSeenAt      DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+model AccessAttempt {
+  id        String   @id @default(uuid())
+  tenantId  String                    // denormalized for cross-tenant audit isolation
+  userId    String
+  doorId    String
+  grantId   String?
+  success   Boolean
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@index([doorId, createdAt])
 }
 
-// Single-use token emailed to the user; expires after 1 hour.
-// Deleted on consumption or when a new one is requested for the same email.
+model StripeWebhookEvent {
+  id        String   @id @default(uuid())
+  tenantId  String?                   // null = platform-level event
+  eventId   String   @unique
+  eventType String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
 model PasswordResetToken {
   id        String   @id @default(uuid())
+  tenantId  String
   email     String
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  @@index([email])
+  @@index([tenantId, email])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4 — AI & Edge Layer
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Point-in-time occupancy snapshots (archived every 15 min by background job).
+// Redis holds the live counter; this table is the historical record for charts.
+model OccupancySnapshot {
+  id          String   @id @default(uuid())
+  tenantId    String
+  count       Int      // people currently estimated inside
+  capacity    Int?     // max capacity configured for this tenant
+  recordedAt  DateTime @default(now())
+
+  @@index([tenantId, recordedAt])
+}
+
+// Cached churn-risk scores per user, recomputed on a schedule.
+// score 0–100 | LOW <30 | MEDIUM 30–60 | HIGH >60
+model AiInsight {
+  id             String   @id @default(uuid())
+  tenantId       String
+  userId         String
+  churnScore     Int      // 0-100
+  riskLevel      String   // LOW | MEDIUM | HIGH
+  factors        Json     // array of { factor, weight } objects
+  recommendation String?  // suggested action for the gym operator
+  computedAt     DateTime @default(now())
+  expiresAt      DateTime // recompute after this timestamp
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, riskLevel])
+  @@index([tenantId, churnScore])
+}
+
+// Time-based pricing rules defined per tenant.
+// modifier: -0.20 = 20 % off-peak discount, +0.10 = 10 % peak surcharge.
+model PricingRule {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String   // "Morning Off-Peak", "Evening Peak"
+  daysOfWeek  Int[]    // 1=Mon … 7=Sun  (ISO weekday)
+  timeFrom    String   // "06:00"
+  timeTo      String   // "10:00"
+  modifier    Float    // fractional price multiplier delta
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, isActive])
 }

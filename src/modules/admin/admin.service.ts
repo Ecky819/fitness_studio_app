@@ -9,9 +9,13 @@ export class AdminService {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
-  async getStats() {
+  async getStats(tenantId: string) {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const tenantUserIds = await this.prisma.user
+      .findMany({ where: { tenantId }, select: { id: true } })
+      .then((rows) => rows.map((r) => r.id));
 
     const [
       totalUsers,
@@ -20,17 +24,22 @@ export class AdminService {
       totalDevices,
       onlineDevices,
     ] = await Promise.all([
-      this.prisma.user.count(),
+      this.prisma.user.count({ where: { tenantId } }),
       this.prisma.subscription.count({
-        where: { status: SubscriptionStatus.ACTIVE, validUntil: { gt: now } },
+        where: {
+          userId: { in: tenantUserIds },
+          status: SubscriptionStatus.ACTIVE,
+          validUntil: { gt: now },
+        },
       }),
       this.prisma.accessEvent.findMany({
-        where: { createdAt: { gte: startOfDay } },
+        where: { userId: { in: tenantUserIds }, createdAt: { gte: startOfDay } },
         select: { status: true },
       }),
-      this.prisma.device.count(),
+      this.prisma.device.count({ where: { tenantId } }),
       this.prisma.device.count({
         where: {
+          tenantId,
           isOnline: true,
           lastSeenAt: { gte: new Date(Date.now() - 5 * 60_000) },
         },
@@ -40,23 +49,19 @@ export class AdminService {
     const granted = todayEvents.filter((e) => e.status === AccessEventStatus.GRANTED).length;
     const denied = todayEvents.filter((e) => e.status === AccessEventStatus.DENIED).length;
 
-    return {
-      totalUsers,
-      activeSubscriptions,
-      todayGranted: granted,
-      todayDenied: denied,
-      totalDevices,
-      onlineDevices,
-    };
+    return { totalUsers, activeSubscriptions, todayGranted: granted, todayDenied: denied, totalDevices, onlineDevices };
   }
 
   // ── Users ──────────────────────────────────────────────────────────────────
 
-  async getUsers(query: AdminUsersQueryDto) {
+  async getUsers(tenantId: string, query: AdminUsersQueryDto) {
     const users = await this.prisma.user.findMany({
-      where: query.search
-        ? { email: { contains: query.search, mode: 'insensitive' } }
-        : undefined,
+      where: {
+        tenantId,
+        ...(query.search
+          ? { email: { contains: query.search, mode: 'insensitive' } }
+          : {}),
+      },
       select: {
         id: true,
         email: true,
@@ -66,53 +71,46 @@ export class AdminService {
         subscriptions: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: {
-            status: true,
-            validUntil: true,
-            plan: { select: { name: true } },
-          },
+          select: { status: true, validUntil: true, plan: { select: { name: true } } },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return users.map((u) => {
-      const sub = u.subscriptions[0] ?? null;
-      return {
-        id: u.id,
-        email: u.email,
-        role: u.role,
-        isBlocked: u.isBlocked,
-        createdAt: u.createdAt,
-        membership: sub
-          ? {
-              status: sub.status,
-              validUntil: sub.validUntil,
-              plan: sub.plan.name,
-            }
-          : null,
-      };
-    });
+    return {
+      data: users.map((u) => {
+        const sub = u.subscriptions[0] ?? null;
+        return {
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          isBlocked: u.isBlocked,
+          createdAt: u.createdAt,
+          membership: sub
+            ? { status: sub.status, validUntil: sub.validUntil, plan: sub.plan.name }
+            : null,
+        };
+      }),
+    };
   }
 
-  async toggleBlock(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async toggleBlock(userId: string, tenantId: string) {
+    const user = await this.prisma.user.findFirst({ where: { id: userId, tenantId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const updated = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id: userId },
       data: { isBlocked: !user.isBlocked },
       select: { id: true, email: true, isBlocked: true },
     });
-
-    return updated;
   }
 
   // ── Devices ────────────────────────────────────────────────────────────────
 
-  async getDevices() {
+  async getDevices(tenantId: string) {
     const cutoff = new Date(Date.now() - 5 * 60_000);
     const devices = await this.prisma.device.findMany({
+      where: { tenantId },
       orderBy: { lastSeenAt: 'desc' },
     });
 
@@ -130,8 +128,13 @@ export class AdminService {
 
   // ── Logs ───────────────────────────────────────────────────────────────────
 
-  async getLogs(query: AdminLogsQueryDto) {
-    const where: Record<string, unknown> = {};
+  async getLogs(tenantId: string, query: AdminLogsQueryDto) {
+    // Scope to users of this tenant
+    const tenantUserIds = await this.prisma.user
+      .findMany({ where: { tenantId }, select: { id: true } })
+      .then((rows) => rows.map((r) => r.id));
+
+    const where: Record<string, unknown> = { userId: { in: tenantUserIds } };
 
     if (query.userId) where.userId = query.userId;
     if (query.doorId) where.doorId = query.doorId;

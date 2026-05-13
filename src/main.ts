@@ -1,5 +1,6 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { json } from 'body-parser';
 import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
@@ -31,6 +32,9 @@ async function bootstrap() {
             },
         }),
     );
+
+    // Native WebSocket adapter for the OccupancyGateway
+    app.useWebSocketAdapter(new WsAdapter(app));
 
     app.useGlobalPipes(
         new ValidationPipe({

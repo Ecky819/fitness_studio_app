@@ -7,11 +7,9 @@ import { AnalyticsDateRangeDto } from './dto/analytics-query.dto';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ── Daily Usage ────────────────────────────────────────────────────────────
-  // Returns GRANTED vs DENIED access events grouped by calendar day.
-  // Defaults to the last 30 days when no date range is supplied.
+  // ── Daily Usage ─────────────────────────────────────────────────────────────
 
-  async getDailyUsage(query: AnalyticsDateRangeDto) {
+  async getDailyUsage(tenantId: string, query: AnalyticsDateRangeDto) {
     const dateFrom = query.dateFrom
       ? new Date(query.dateFrom)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -21,13 +19,15 @@ export class AnalyticsService {
       { day: Date; granted: bigint; denied: bigint }[]
     >`
       SELECT
-        DATE_TRUNC('day', "createdAt") AS day,
-        COUNT(*) FILTER (WHERE status::text = 'GRANTED')::bigint AS granted,
-        COUNT(*) FILTER (WHERE status::text = 'DENIED')::bigint  AS denied
-      FROM "AccessEvent"
-      WHERE "createdAt" >= ${dateFrom}
-        AND "createdAt" <= ${dateTo}
-      GROUP BY DATE_TRUNC('day', "createdAt")
+        DATE_TRUNC('day', ae."createdAt") AS day,
+        COUNT(*) FILTER (WHERE ae.status::text = 'GRANTED')::bigint AS granted,
+        COUNT(*) FILTER (WHERE ae.status::text = 'DENIED')::bigint  AS denied
+      FROM "AccessEvent" ae
+      INNER JOIN "User" u ON u.id = ae."userId"
+      WHERE u."tenantId" = ${tenantId}
+        AND ae."createdAt" >= ${dateFrom}
+        AND ae."createdAt" <= ${dateTo}
+      GROUP BY DATE_TRUNC('day', ae."createdAt")
       ORDER BY day ASC
     `;
 
@@ -38,11 +38,9 @@ export class AnalyticsService {
     }));
   }
 
-  // ── Peak Hours ────────────────────────────────────────────────────────────
-  // Returns granted access events grouped by hour-of-day (0-23).
-  // All 24 hours are always returned — missing hours get count=0.
+  // ── Peak Hours ───────────────────────────────────────────────────────────────
 
-  async getPeakHours(query: AnalyticsDateRangeDto) {
+  async getPeakHours(tenantId: string, query: AnalyticsDateRangeDto) {
     const dateFrom = query.dateFrom
       ? new Date(query.dateFrom)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -52,29 +50,28 @@ export class AnalyticsService {
       { hour: number; count: bigint }[]
     >`
       SELECT
-        EXTRACT(HOUR FROM "createdAt")::int AS hour,
-        COUNT(*)::bigint                    AS count
-      FROM "AccessEvent"
-      WHERE status::text = 'GRANTED'
-        AND "createdAt" >= ${dateFrom}
-        AND "createdAt" <= ${dateTo}
-      GROUP BY EXTRACT(HOUR FROM "createdAt")
+        EXTRACT(HOUR FROM ae."createdAt")::int AS hour,
+        COUNT(*)::bigint                       AS count
+      FROM "AccessEvent" ae
+      INNER JOIN "User" u ON u.id = ae."userId"
+      WHERE u."tenantId" = ${tenantId}
+        AND ae.status::text = 'GRANTED'
+        AND ae."createdAt" >= ${dateFrom}
+        AND ae."createdAt" <= ${dateTo}
+      GROUP BY EXTRACT(HOUR FROM ae."createdAt")
       ORDER BY hour ASC
     `;
 
     const hourMap = new Map(rows.map((r) => [Number(r.hour), Number(r.count)]));
-
     return Array.from({ length: 24 }, (_, h) => ({
       hour: h,
       count: hourMap.get(h) ?? 0,
     }));
   }
 
-  // ── Revenue ───────────────────────────────────────────────────────────────
-  // Returns succeeded payments grouped by month plus a running total.
-  // Defaults to the last 12 months when no date range is supplied.
+  // ── Revenue ──────────────────────────────────────────────────────────────────
 
-  async getRevenue(query: AnalyticsDateRangeDto) {
+  async getRevenue(tenantId: string, query: AnalyticsDateRangeDto) {
     const dateFrom = query.dateFrom
       ? new Date(query.dateFrom)
       : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
@@ -85,21 +82,29 @@ export class AnalyticsService {
         { month: Date; total_cents: bigint; count: bigint }[]
       >`
         SELECT
-          DATE_TRUNC('month', "createdAt") AS month,
-          SUM("amountCents")::bigint       AS total_cents,
-          COUNT(*)::bigint                 AS count
-        FROM "Payment"
-        WHERE status = 'succeeded'
-          AND "createdAt" >= ${dateFrom}
-          AND "createdAt" <= ${dateTo}
-        GROUP BY DATE_TRUNC('month', "createdAt")
+          DATE_TRUNC('month', p."createdAt") AS month,
+          SUM(p."amountCents")::bigint        AS total_cents,
+          COUNT(*)::bigint                    AS count
+        FROM "Payment" p
+        INNER JOIN "User" u ON u.id = p."userId"
+        WHERE u."tenantId" = ${tenantId}
+          AND p.status = 'succeeded'
+          AND p."createdAt" >= ${dateFrom}
+          AND p."createdAt" <= ${dateTo}
+        GROUP BY DATE_TRUNC('month', p."createdAt")
         ORDER BY month ASC
       `,
-      this.prisma.payment.aggregate({
-        where: { status: 'succeeded', createdAt: { gte: dateFrom, lte: dateTo } },
-        _sum: { amountCents: true },
-        _count: true,
-      }),
+      this.prisma.$queryRaw<{ total: bigint; cnt: bigint }[]>`
+        SELECT
+          COALESCE(SUM(p."amountCents"), 0)::bigint AS total,
+          COUNT(*)::bigint                          AS cnt
+        FROM "Payment" p
+        INNER JOIN "User" u ON u.id = p."userId"
+        WHERE u."tenantId" = ${tenantId}
+          AND p.status = 'succeeded'
+          AND p."createdAt" >= ${dateFrom}
+          AND p."createdAt" <= ${dateTo}
+      `,
     ]);
 
     return {
@@ -108,38 +113,44 @@ export class AnalyticsService {
         totalCents: Number(r.total_cents),
         count: Number(r.count),
       })),
-      totalCents: totals._sum.amountCents ?? 0,
-      totalPayments: totals._count,
+      totalCents: Number(totals[0]?.total ?? 0),
+      totalPayments: Number(totals[0]?.cnt ?? 0),
     };
   }
 
-  // ── Active Users ──────────────────────────────────────────────────────────
-  // KPI snapshot: total users, active subscriptions, new registrations this
-  // month, and distinct users who successfully accessed in the last 30 days.
+  // ── Active Users ──────────────────────────────────────────────────────────────
 
-  async getActiveUsers() {
+  async getActiveUsers(tenantId: string) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, activeSubscriptions, newUsersThisMonth, activeUsersRaw] =
+    const [totalUsers, newUsersThisMonth, activeSubRaw, activeUsersRaw] =
       await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.subscription.count({
-          where: { status: SubscriptionStatus.ACTIVE, validUntil: { gt: now } },
-        }),
-        this.prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
+        this.prisma.user.count({ where: { tenantId } }),
+        this.prisma.user.count({ where: { tenantId, createdAt: { gte: startOfMonth } } }),
+        // Active subscriptions scoped via user
         this.prisma.$queryRaw<{ count: bigint }[]>`
-          SELECT COUNT(DISTINCT "userId")::bigint AS count
-          FROM "AccessEvent"
-          WHERE status::text = 'GRANTED'
-            AND "createdAt" >= ${thirtyDaysAgo}
+          SELECT COUNT(*)::bigint AS count
+          FROM "Subscription" s
+          INNER JOIN "User" u ON u.id = s."userId"
+          WHERE u."tenantId" = ${tenantId}
+            AND s.status = 'ACTIVE'
+            AND s."validUntil" > ${now}
+        `,
+        this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(DISTINCT ae."userId")::bigint AS count
+          FROM "AccessEvent" ae
+          INNER JOIN "User" u ON u.id = ae."userId"
+          WHERE u."tenantId" = ${tenantId}
+            AND ae.status::text = 'GRANTED'
+            AND ae."createdAt" >= ${thirtyDaysAgo}
         `,
       ]);
 
     return {
       totalUsers,
-      activeSubscriptions,
+      activeSubscriptions: Number(activeSubRaw[0]?.count ?? 0),
       newUsersThisMonth,
       activeUsersLast30Days: Number(activeUsersRaw[0]?.count ?? 0),
     };

@@ -444,5 +444,34 @@ export class AccessService {
             : Promise.resolve();
 
         await Promise.all([attemptPromise, eventPromise]);
+
+        // Publish to Redis Stream for the AI/occupancy pipeline (fire-and-forget)
+        if (success) {
+            void this.publishAccessEvent(userId, doorId, reason);
+        }
+    }
+
+    private async publishAccessEvent(userId: string, doorId: string, reason: string) {
+        try {
+            // Look up tenantId from user — needed by downstream consumers
+            const user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { tenantId: true },
+            });
+            if (!user) return;
+
+            // xadd appends to the stream; consumers read via xreadgroup
+            await this.redis.xadd(
+                `gym_events:${user.tenantId}`,
+                '*', // auto-generated ID
+                'type', 'access_granted',
+                'userId', userId,
+                'doorId', doorId,
+                'reason', reason ?? '',
+                'ts', Date.now().toString(),
+            );
+        } catch {
+            // Stream publish failure must never block door access
+        }
     }
 }

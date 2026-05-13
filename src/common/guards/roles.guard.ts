@@ -28,6 +28,9 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied');
     }
 
+    // SuperAdmin bypasses all role restrictions
+    if (user.role === Role.SuperAdmin) return true;
+
     if (!requiredRoles.includes(user.role)) {
       throw new ForbiddenException(
         `Insufficient role. Required: ${requiredRoles.join(' or ')}`,

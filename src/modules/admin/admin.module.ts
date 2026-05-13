@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { TenantContextService } from '../../common/tenant-context.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService, TenantContextService],
 })
 export class AdminModule {}

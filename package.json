@@ -37,7 +37,11 @@
         "pdfkit": "^0.14.0",
         "prisma": "^5.0.0",
         "reflect-metadata": "^0.1.13",
-        "stripe": "^12.0.0"
+        "stripe": "^12.0.0",
+        "@nestjs/websockets": "^10.0.0",
+        "@nestjs/platform-ws": "^10.0.0",
+        "ws": "^8.18.0",
+        "mqtt": "^5.10.0"
     },
     "devDependencies": {
         "@nestjs/cli": "^10.0.0",
@@ -49,6 +53,7 @@
         "@types/jsonwebtoken": "^9.0.2",
         "@types/node": "^20.0.0",
         "@types/nodemailer": "^8.0.0",
+        "@types/ws": "^8.5.10",
         "@types/supertest": "^2.0.12",
         "@typescript-eslint/eslint-plugin": "^6.0.0",
         "@typescript-eslint/parser": "^6.0.0",

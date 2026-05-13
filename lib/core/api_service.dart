@@ -23,6 +23,15 @@ class ApiService {
     defaultValue: 'http://localhost:3000/api',
   );
 
+  // Tenant slug is set once at app startup (from env or config).
+  // Sent as X-Tenant-Slug on every request so the backend can resolve tenantId.
+  static String _tenantSlug = const String.fromEnvironment(
+    'TENANT_SLUG',
+    defaultValue: '',
+  );
+
+  static void setTenantSlug(String slug) => _tenantSlug = slug;
+
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -43,8 +52,7 @@ class ApiService {
     ]);
   }
 
-  static Future<String?> getAccessToken() =>
-      _storage.read(key: _kAccessToken);
+  static Future<String?> getAccessToken() => _storage.read(key: _kAccessToken);
 
   static Future<String?> getRefreshToken() =>
       _storage.read(key: _kRefreshToken);
@@ -67,7 +75,8 @@ class ApiService {
     String email,
     String password,
   ) async {
-    final body = await _post('/auth/login', {'email': email, 'password': password});
+    final body =
+        await _post('/auth/login', {'email': email, 'password': password});
     await saveTokens(
       accessToken: body['accessToken'] as String,
       refreshToken: body['refreshToken'] as String,
@@ -154,6 +163,81 @@ class ApiService {
 
   static Future<void> toggleUserBlock(String userId) =>
       _patch('/admin/users/$userId/block', {});
+
+  // ── Tenant / White-Label ─────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getTenantConfig() =>
+      _get('/tenant/config');
+
+  static Future<Map<String, dynamic>> updateTenantConfig(
+    Map<String, dynamic> config,
+  ) =>
+      _patch('/tenant/config', config);
+
+  // ── Super-Admin ───────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getSuperAdminStats() =>
+      _get('/super-admin/platform-stats');
+
+  static Future<Map<String, dynamic>> getSuperAdminTenants({
+    String? search,
+    int page = 1,
+    int limit = 20,
+  }) =>
+      _get('/super-admin/tenants', params: {
+        if (search != null) 'search': search,
+        'page': '$page',
+        'limit': '$limit',
+      });
+
+  static Future<Map<String, dynamic>> createTenant(
+    Map<String, dynamic> body,
+  ) =>
+      _post('/super-admin/tenants', body);
+
+  static Future<Map<String, dynamic>> updateTenantPlan(
+    String tenantId,
+    String plan,
+  ) =>
+      _patch('/super-admin/tenants/$tenantId/plan', {'plan': plan});
+
+  static Future<Map<String, dynamic>> updateTenantStatus(
+    String tenantId,
+    String status,
+  ) =>
+      _patch('/super-admin/tenants/$tenantId/status', {'status': status});
+
+  // ── Occupancy ─────────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getOccupancyCurrent() =>
+      _get('/occupancy/current');
+
+  static Future<List<dynamic>> getOccupancyHistory({int hours = 24}) async {
+    final data = await _get('/occupancy/history', params: {'hours': '$hours'});
+    return data['data'] as List<dynamic>? ?? [data];
+  }
+
+  // ── AI Insights ───────────────────────────────────────────────────────────
+
+  static Future<List<dynamic>> getChurnRisk({int limit = 50}) async {
+    final data = await _get('/ai/churn-risk', params: {'limit': '$limit'});
+    return data['data'] as List<dynamic>? ?? (data.values.first is List ? data.values.first as List : []);
+  }
+
+  static Future<List<dynamic>> getAnomalies() async {
+    final data = await _get('/ai/anomalies');
+    return data['data'] as List<dynamic>? ?? (data.values.first is List ? data.values.first as List : []);
+  }
+
+  // ── Pricing ───────────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getCurrentPricing(String planId) =>
+      _get('/pricing/current', params: {'planId': planId});
+
+  static Future<List<dynamic>> getPricingRules() async {
+    final data = await _get('/pricing/rules');
+    return data['data'] as List<dynamic>? ?? (data.values.first is List ? data.values.first as List : []);
+  }
 
   // ── Analytics ────────────────────────────────────────────────────────────
 
@@ -261,6 +345,7 @@ class ApiService {
   static Map<String, String> _headers([String? token]) => {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
+        if (_tenantSlug.isNotEmpty) 'X-Tenant-Slug': _tenantSlug,
       };
 
   /// Silently refreshes the access token and retries the original request once.
@@ -268,7 +353,7 @@ class ApiService {
     Future<http.Response> Function() request,
   ) async {
     final refreshToken = await getRefreshToken();
-    if (refreshToken == null) throw ApiException(401, 'Session expired');
+    if (refreshToken == null) throw const ApiException(401, 'Session expired');
 
     final refreshResponse = await http.post(
       Uri.parse('$_baseUrl/auth/refresh'),
@@ -279,7 +364,7 @@ class ApiService {
     if (refreshResponse.statusCode != 200 &&
         refreshResponse.statusCode != 201) {
       await clearTokens();
-      throw ApiException(401, 'Session expired — please log in again');
+      throw const ApiException(401, 'Session expired — please log in again');
     }
 
     final tokens = jsonDecode(refreshResponse.body) as Map<String, dynamic>;
@@ -308,7 +393,8 @@ class ApiService {
         'Request failed (${response.statusCode})';
 
     if (kDebugMode) {
-      debugPrint('[ApiService] ${response.statusCode} ${response.request?.url} — $message');
+      debugPrint(
+          '[ApiService] ${response.statusCode} ${response.request?.url} — $message');
     }
 
     throw ApiException(response.statusCode, message);
