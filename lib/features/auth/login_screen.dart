@@ -122,16 +122,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  SizedBox(
-                    // Constrain height so IndexedStack doesn't collapse
-                    height: _tabController.index == 0 ? 340 : 460,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _SignInForm(role: _role),
-                        const _RegisterForm(),
-                      ],
-                    ),
+                  // AnimatedSwitcher lets the form size itself naturally —
+                  // no hardcoded height needed; SingleChildScrollView above
+                  // handles any content that exceeds the screen.
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _tabController.index == 0
+                        ? _SignInForm(
+                            key: const ValueKey('signin'),
+                            role: _role,
+                          )
+                        : const _RegisterForm(key: ValueKey('register')),
                   ),
                 ] else ...[
                   // Operator — sign-in only
@@ -256,7 +257,7 @@ class _RoleOption extends StatelessWidget {
 
 class _SignInForm extends ConsumerStatefulWidget {
   final _UserRole role;
-  const _SignInForm({required this.role});
+  const _SignInForm({super.key, required this.role});
 
   @override
   ConsumerState<_SignInForm> createState() => _SignInFormState();
@@ -498,7 +499,7 @@ class _SignInFormState extends ConsumerState<_SignInForm> {
 // ── Register Form ──────────────────────────────────────────────────────────────
 
 class _RegisterForm extends ConsumerStatefulWidget {
-  const _RegisterForm();
+  const _RegisterForm({super.key});
 
   @override
   ConsumerState<_RegisterForm> createState() => _RegisterFormState();

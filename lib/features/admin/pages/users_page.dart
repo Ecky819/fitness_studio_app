@@ -61,7 +61,10 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                       onChanged: (v) => setState(() => _searchQuery = v),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    _UsersTable(users: filtered),
+                    _UsersTable(
+                      users: filtered,
+                      hasActiveSearch: _searchQuery.isNotEmpty,
+                    ),
                   ],
                 ),
               ),
@@ -108,16 +111,97 @@ class _SearchBar extends StatelessWidget {
 
 class _UsersTable extends ConsumerWidget {
   final List<AdminUser> users;
-  const _UsersTable({required this.users});
+  final bool hasActiveSearch;
+  const _UsersTable({required this.users, this.hasActiveSearch = false});
+
+  Future<void> _confirmToggleBlock(
+    BuildContext context,
+    WidgetRef ref,
+    AdminUser user,
+  ) async {
+    final action = user.isBlocked ? 'Unblock' : 'Block';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        title: Text('$action User?', style: AppTextStyles.h4),
+        content: Text(
+          'Are you sure you want to ${action.toLowerCase()} ${user.email}?',
+          style: AppTextStyles.body
+              .copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body
+                  .copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              action,
+              style: AppTextStyles.body.copyWith(
+                color: user.isBlocked
+                    ? AppColors.success
+                    : AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      ref.read(usersNotifierProvider.notifier).toggleBlock(user.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (users.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Text('No users match the search.',
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+      return AdminCard(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xxl,
+          horizontal: AppSpacing.lg,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                hasActiveSearch
+                    ? Icons.search_off_rounded
+                    : Icons.people_outline_rounded,
+                size: 48,
+                color: AppColors.textTertiary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                hasActiveSearch
+                    ? 'No users match your search'
+                    : 'No members yet',
+                style: AppTextStyles.h4
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                hasActiveSearch
+                    ? 'Try a different name or email address.'
+                    : 'Registered members will appear here.',
+                style: AppTextStyles.body
+                    .copyWith(color: AppColors.textTertiary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -186,9 +270,8 @@ class _UsersTable extends ConsumerWidget {
               )),
               DataCell(_BlockButton(
                 isBlocked: user.isBlocked,
-                onTap: () => ref
-                    .read(usersNotifierProvider.notifier)
-                    .toggleBlock(user.id),
+                onTap: () =>
+                    _confirmToggleBlock(context, ref, user),
               )),
             ]);
           }).toList(),

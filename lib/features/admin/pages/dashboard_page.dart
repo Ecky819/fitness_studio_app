@@ -74,55 +74,59 @@ class _StatsRow extends StatelessWidget {
   final AdminStats stats;
   const _StatsRow({required this.stats});
 
+  List<Widget> _cards(AdminStats s) => [
+        StatCard(
+          label: 'Total Users',
+          value: '${s.totalUsers}',
+          icon: Icons.people_rounded,
+          color: AppColors.primary,
+        ),
+        StatCard(
+          label: 'Active Members',
+          value: '${s.activeSubscriptions}',
+          icon: Icons.verified_rounded,
+          color: AppColors.success,
+        ),
+        StatCard(
+          label: 'Devices Online',
+          value: '${s.devicesOnline}/${s.totalDevices}',
+          icon: Icons.sensors_rounded,
+          color: AppColors.info,
+        ),
+        StatCard(
+          label: 'Access Today',
+          value: '${s.todayAccessCount}',
+          icon: Icons.check_circle_rounded,
+          color: AppColors.warning,
+        ),
+        StatCard(
+          label: 'Denied Today',
+          value: '${s.failedAccessToday}',
+          icon: Icons.cancel_rounded,
+          color: AppColors.error,
+        ),
+      ];
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: StatCard(
-            label: 'Total Users',
-            value: '${stats.totalUsers}',
-            icon: Icons.people_rounded,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Active Members',
-            value: '${stats.activeSubscriptions}',
-            icon: Icons.verified_rounded,
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Devices Online',
-            value: '${stats.devicesOnline}/${stats.totalDevices}',
-            icon: Icons.sensors_rounded,
-            color: AppColors.info,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Access Today',
-            value: '${stats.todayAccessCount}',
-            icon: Icons.check_circle_rounded,
-            color: AppColors.warning,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Denied Today',
-            value: '${stats.failedAccessToday}',
-            icon: Icons.cancel_rounded,
-            color: AppColors.error,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        // ≥ 800px → 5 cards in one row (desktop / admin web)
+        // 500–799px → 3 + 2
+        // < 500px  → 2 + 2 + 1 (narrow mobile)
+        final cols = w >= 800 ? 5 : w >= 500 ? 3 : 2;
+        final cardWidth =
+            (w - (cols - 1) * AppSpacing.md) / cols;
+
+        return Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: _cards(stats)
+              .map((c) => SizedBox(width: cardWidth, child: c))
+              .toList(),
+        );
+      },
     );
   }
 }

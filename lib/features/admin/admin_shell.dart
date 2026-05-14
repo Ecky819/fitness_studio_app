@@ -28,6 +28,55 @@ class _AdminShellState extends State<AdminShell> {
     _NavItem(icon: Icons.list_alt_rounded, label: 'Logs'),
   ];
 
+  static const _pages = [
+    DashboardPage(),
+    AnalyticsPage(),
+    InsightsPage(),
+    UsersPage(),
+    DevicesPage(),
+    LogsPage(),
+  ];
+
+  void _select(int i) => setState(() => _selectedIndex = i);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return _MobileShell(
+            selectedIndex: _selectedIndex,
+            navItems: _navItems,
+            pages: _pages,
+            onSelect: _select,
+          );
+        }
+        return _DesktopShell(
+          selectedIndex: _selectedIndex,
+          navItems: _navItems,
+          pages: _pages,
+          onSelect: _select,
+        );
+      },
+    );
+  }
+}
+
+// ── Desktop Shell ─────────────────────────────────────────────────────────────
+
+class _DesktopShell extends StatelessWidget {
+  final int selectedIndex;
+  final List<_NavItem> navItems;
+  final List<Widget> pages;
+  final ValueChanged<int> onSelect;
+
+  const _DesktopShell({
+    required this.selectedIndex,
+    required this.navItems,
+    required this.pages,
+    required this.onSelect,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,23 +84,14 @@ class _AdminShellState extends State<AdminShell> {
       body: Row(
         children: [
           _Sidebar(
-            selectedIndex: _selectedIndex,
-            navItems: _navItems,
-            onSelect: (i) => setState(() => _selectedIndex = i),
+            selectedIndex: selectedIndex,
+            navItems: navItems,
+            onSelect: onSelect,
           ),
-          const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+          const VerticalDivider(
+              width: 1, thickness: 1, color: AppColors.border),
           Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: const [
-                DashboardPage(),
-                AnalyticsPage(),
-                InsightsPage(),
-                UsersPage(),
-                DevicesPage(),
-                LogsPage(),
-              ],
-            ),
+            child: IndexedStack(index: selectedIndex, children: pages),
           ),
         ],
       ),
@@ -59,11 +99,219 @@ class _AdminShellState extends State<AdminShell> {
   }
 }
 
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem({required this.icon, required this.label});
+// ── Mobile Shell ──────────────────────────────────────────────────────────────
+
+class _MobileShell extends StatelessWidget {
+  final int selectedIndex;
+  final List<_NavItem> navItems;
+  final List<Widget> pages;
+  final ValueChanged<int> onSelect;
+
+  const _MobileShell({
+    required this.selectedIndex,
+    required this.navItems,
+    required this.pages,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final currentLabel = navItems[selectedIndex].label;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius:
+                    BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: const Icon(
+                Icons.fitness_center_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(currentLabel, style: AppTextStyles.h4),
+          ],
+        ),
+        iconTheme:
+            const IconThemeData(color: AppColors.textPrimary),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppColors.border),
+        ),
+      ),
+      drawer: _MobileDrawer(
+        selectedIndex: selectedIndex,
+        navItems: navItems,
+        onSelect: (i) {
+          Navigator.pop(context);
+          onSelect(i);
+        },
+      ),
+      body: IndexedStack(index: selectedIndex, children: pages),
+    );
+  }
 }
+
+// ── Mobile Drawer ─────────────────────────────────────────────────────────────
+
+class _MobileDrawer extends StatelessWidget {
+  final int selectedIndex;
+  final List<_NavItem> navItems;
+  final ValueChanged<int> onSelect;
+
+  const _MobileDrawer({
+    required this.selectedIndex,
+    required this.navItems,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: AppColors.surface,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    child: const Icon(
+                      Icons.fitness_center_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('FitAdmin',
+                          style:
+                              AppTextStyles.h4.copyWith(fontSize: 16)),
+                      Text(
+                        'Control Panel',
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: AppColors.border, height: 1),
+            const SizedBox(height: AppSpacing.sm),
+            ...navItems.asMap().entries.map((e) => _DrawerNavItem(
+                  item: e.value,
+                  isSelected: e.key == selectedIndex,
+                  onTap: () => onSelect(e.key),
+                )),
+            const Spacer(),
+            const Divider(color: AppColors.border, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Text(
+                'v1.0.0',
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.textTertiary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerNavItem extends StatelessWidget {
+  final _NavItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DrawerNavItem({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: 2,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm + 4,
+        ),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius:
+                    BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(
+                    color:
+                        AppColors.primary.withValues(alpha: 0.3)),
+              )
+            : null,
+        child: Row(
+          children: [
+            Icon(
+              item.icon,
+              size: AppSpacing.iconLg,
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              item.label,
+              style: AppTextStyles.body.copyWith(
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
+                fontWeight: isSelected
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Desktop Sidebar ───────────────────────────────────────────────────────────
 
 class _Sidebar extends StatelessWidget {
   final int selectedIndex;
@@ -84,7 +332,6 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
@@ -128,15 +375,11 @@ class _Sidebar extends StatelessWidget {
           ),
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppSpacing.sm),
-          // Nav items
-          ...navItems.asMap().entries.map((e) {
-            final isSelected = e.key == selectedIndex;
-            return _SidebarNavItem(
-              item: e.value,
-              isSelected: isSelected,
-              onTap: () => onSelect(e.key),
-            );
-          }),
+          ...navItems.asMap().entries.map((e) => _SidebarNavItem(
+                item: e.value,
+                isSelected: e.key == selectedIndex,
+                onTap: () => onSelect(e.key),
+              )),
           const Spacer(),
           const Divider(color: AppColors.border, height: 1),
           Padding(
@@ -151,6 +394,14 @@ class _Sidebar extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Shared types ──────────────────────────────────────────────────────────────
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem({required this.icon, required this.label});
 }
 
 class _SidebarNavItem extends StatefulWidget {
@@ -195,10 +446,12 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
                 : _isHovered
                     ? AppColors.overlayHover
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            borderRadius:
+                BorderRadius.circular(AppSpacing.radiusMd),
             border: widget.isSelected
                 ? Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                    color:
+                        AppColors.primary.withValues(alpha: 0.3),
                     width: 1,
                   )
                 : null,
@@ -208,14 +461,17 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
               Icon(
                 widget.item.icon,
                 size: AppSpacing.iconLg,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
+                color: isActive
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 widget.item.label,
                 style: AppTextStyles.body.copyWith(
-                  color:
-                      isActive ? AppColors.primary : AppColors.textSecondary,
+                  color: isActive
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                   fontWeight: widget.isSelected
                       ? FontWeight.w600
                       : FontWeight.w400,

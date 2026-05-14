@@ -5,14 +5,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/access_state.dart';
 import '../../controllers/access_controller.dart';
 import '../../providers/qr_token_provider.dart';
+import '../../design_system/design_system.dart';
+import '../member/profile_screen.dart';
 
 class AccessScreen extends ConsumerStatefulWidget {
   final String doorId;
 
-  const AccessScreen({
-    super.key,
-    required this.doorId,
-  });
+  const AccessScreen({super.key, required this.doorId});
 
   @override
   ConsumerState<AccessScreen> createState() => _AccessScreenState();
@@ -34,7 +33,6 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
   void initState() {
     super.initState();
 
-    // Pulse animation for scanning (radar effect)
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -44,7 +42,6 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Scale animation for success
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -54,7 +51,6 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
 
-    // Shake animation for error
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -64,7 +60,6 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
     );
 
-    // Fade animation for smooth transitions
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -84,72 +79,80 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
     super.dispose();
   }
 
+  void _openProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final accessState = ref.watch(accessControllerProvider(widget.doorId));
 
-    // Trigger animations based on state
     switch (accessState) {
       case AccessState.scanning:
         _pulseController.repeat(reverse: true);
         _scaleController.reset();
         _shakeController.reset();
         _fadeController.forward();
-        break;
       case AccessState.connecting:
       case AccessState.authenticating:
         _pulseController.stop();
         _scaleController.reset();
         _shakeController.reset();
         _fadeController.forward();
-        break;
       case AccessState.success:
         _pulseController.stop();
         _scaleController.forward();
         _shakeController.reset();
         _fadeController.forward();
-        break;
       case AccessState.denied:
         _pulseController.stop();
         _scaleController.reset();
         _shakeController.forward();
         _fadeController.forward();
-        break;
       case AccessState.fallbackQR:
         _pulseController.stop();
         _scaleController.reset();
         _shakeController.reset();
         _fadeController.forward();
-        break;
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'NextGen Gym OS',
+          style: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.account_circle_rounded,
+              color: AppColors.textSecondary,
+              size: 28,
+            ),
+            tooltip: 'Profile',
+            onPressed: _openProfile,
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F0F23),
-              Color(0xFF1A1A2E),
-              Color(0xFF16213E),
-            ],
-          ),
+          gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(
-                    scale: animation,
-                    child: child,
-                  ),
-                );
-              },
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: animation, child: child),
+              ),
               child: _buildContent(accessState, ref),
             ),
           ),
@@ -175,6 +178,8 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
     }
   }
 
+  // ── BLE States ────────────────────────────────────────────────────────────
+
   Widget _buildScanningView() {
     return Center(
       key: const ValueKey('scanning'),
@@ -183,52 +188,25 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
         children: [
           AnimatedBuilder(
             animation: _pulseAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _pulseAnimation.value,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Colors.blue, Colors.blueAccent],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.bluetooth_searching,
-                    color: Colors.white,
-                    size: 60,
-                  ),
-                ),
-              );
-            },
+            builder: (_, __) => Transform.scale(
+              scale: _pulseAnimation.value,
+              child: const _StateCircle(
+                color: AppColors.primary,
+                icon: Icons.bluetooth_searching_rounded,
+              ),
+            ),
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Suche Studio...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Scanning for device…',
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w300),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _FadeText(
+            animation: _fadeAnimation,
+            text: 'Hold your phone near the door',
+            style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -241,46 +219,15 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.blue, Colors.blueAccent],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.bluetooth_connected,
-              color: Colors.white,
-              size: 50,
-            ),
+          const _StateCircle(
+            color: AppColors.primary,
+            icon: Icons.bluetooth_connected_rounded,
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Verbinde...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Connecting…',
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w300),
           ),
         ],
       ),
@@ -293,46 +240,15 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.green, Colors.greenAccent],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.security,
-              color: Colors.white,
-              size: 50,
-            ),
+          const _StateCircle(
+            color: AppColors.success,
+            icon: Icons.security_rounded,
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Prüfe Zugang...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Verifying access…',
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w300),
           ),
         ],
       ),
@@ -347,52 +263,23 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
         children: [
           AnimatedBuilder(
             animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Colors.green, Colors.greenAccent],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withValues(alpha: 0.4),
-                        blurRadius: 40,
-                        spreadRadius: 15,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 80,
-                  ),
-                ),
-              );
-            },
+            builder: (_, __) => Transform.scale(
+              scale: _scaleAnimation.value,
+              child: const _StateCircle(
+                color: AppColors.success,
+                icon: Icons.check_circle_rounded,
+                size: 140,
+                iconSize: 80,
+                glowRadius: 40,
+                glowSpread: 15,
+              ),
+            ),
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Zugang gewährt',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.greenAccent,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Access Granted',
+            style: AppTextStyles.h2.copyWith(color: AppColors.success),
           ),
         ],
       ),
@@ -407,115 +294,60 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
         children: [
           AnimatedBuilder(
             animation: _shakeAnimation,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(sin(_shakeAnimation.value * 0.1) * 10, 0),
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Colors.red, Colors.redAccent],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.error,
-                    color: Colors.white,
-                    size: 60,
-                  ),
-                ),
-              );
-            },
+            builder: (_, __) => Transform.translate(
+              offset: Offset(sin(_shakeAnimation.value * 0.1) * 10, 0),
+              child: const _StateCircle(
+                color: AppColors.error,
+                icon: Icons.cancel_rounded,
+              ),
+            ),
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Kein Zugang',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Access Denied',
+            style: AppTextStyles.h2.copyWith(color: AppColors.error),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _FadeText(
+            animation: _fadeAnimation,
+            text: 'Your membership may be inactive',
+            style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
           ),
         ],
       ),
     );
   }
 
+  // ── QR Fallback ───────────────────────────────────────────────────────────
+
   Widget _buildQRFallbackView(WidgetRef ref) {
     final qrTokenAsync = ref.watch(qrTokenForDoorProvider(widget.doorId));
 
     return qrTokenAsync.when(
-      data: (token) => token != null && token != 'error'
-          ? _buildQRCodeView(token)
-          : _buildQRErrorView(),
       loading: () => Center(
         key: const ValueKey('qr_loading'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Colors.white, Colors.white70],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.qr_code_scanner,
-                color: Colors.black87,
-                size: 40,
-              ),
+            const _StateCircle(
+              color: AppColors.textSecondary,
+              icon: Icons.qr_code_scanner_rounded,
             ),
             const SizedBox(height: 40),
-            AnimatedBuilder(
+            _FadeText(
               animation: _fadeAnimation,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: const Text(
-                    'Lade QR-Code...',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w300,
-                      height: 1.2,
-                    ),
-                  ),
-                );
-              },
+              text: 'Preparing QR code…',
+              style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w300),
             ),
           ],
         ),
       ),
       error: (_, __) => _buildQRErrorView(),
+      data: (token) {
+        if (token == null) return _buildQRErrorView();
+        return _buildQRCodeView(token);
+      },
     );
   }
 
@@ -525,75 +357,54 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'QR als Fallback',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-              );
-            },
+            text: 'QR Code Access',
+            style: AppTextStyles.h3,
           ),
-          const SizedBox(height: 40),
-          AnimatedBuilder(
+          const SizedBox(height: 8),
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        blurRadius: 30,
-                        spreadRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: QrImageView(
-                    data: token,
-                    version: QrVersions.auto,
-                    size: 240.0,
-                    backgroundColor: Colors.white,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: Colors.black,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              );
-            },
+            text: 'Show this to the door scanner',
+            style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
           ),
-          const SizedBox(height: 40),
-          AnimatedBuilder(
-            animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'Code wird automatisch\naktualisiert',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
+          const SizedBox(height: AppSpacing.xl),
+          FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    blurRadius: 30,
+                    spreadRadius: 8,
                   ),
+                ],
+              ),
+              child: QrImageView(
+                data: token,
+                version: QrVersions.auto,
+                size: 240.0,
+                backgroundColor: Colors.white,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Colors.black,
                 ),
-              );
-            },
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _FadeText(
+            animation: _fadeAnimation,
+            text: 'Refreshes every 30 seconds',
+            style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -606,49 +417,100 @@ class _AccessScreenState extends ConsumerState<AccessScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.orangeAccent],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.qr_code,
-              color: Colors.white,
-              size: 50,
-            ),
+          const _StateCircle(
+            color: AppColors.warning,
+            icon: Icons.qr_code_rounded,
           ),
           const SizedBox(height: 40),
-          AnimatedBuilder(
+          _FadeText(
             animation: _fadeAnimation,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _fadeAnimation.value,
-                child: const Text(
-                  'QR-Code Fehler',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.orangeAccent,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                    height: 1.2,
-                  ),
-                ),
-              );
-            },
+            text: 'Could not load QR code',
+            style: AppTextStyles.h3.copyWith(color: AppColors.warning),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _FadeText(
+            animation: _fadeAnimation,
+            text: 'Check your internet connection',
+            style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          OutlinedButton.icon(
+            onPressed: () => ref
+                .read(qrTokenForDoorProvider(widget.doorId).notifier)
+                .refresh(),
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Try again'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.border),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Shared sub-widgets ────────────────────────────────────────────────────────
+
+class _StateCircle extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final double size;
+  final double iconSize;
+  final double glowRadius;
+  final double glowSpread;
+
+  const _StateCircle({
+    required this.color,
+    required this.icon,
+    this.size = 120,
+    this.iconSize = 60,
+    this.glowRadius = 30,
+    this.glowSpread = 10,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [color, color.withValues(alpha: 0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: glowRadius,
+            spreadRadius: glowSpread,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: Colors.white, size: iconSize),
+    );
+  }
+}
+
+class _FadeText extends StatelessWidget {
+  final Animation<double> animation;
+  final String text;
+  final TextStyle style;
+
+  const _FadeText({
+    required this.animation,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: animation,
+      child: Text(text, textAlign: TextAlign.center, style: style),
     );
   }
 }

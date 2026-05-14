@@ -48,6 +48,40 @@ class _DevicesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (devices.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xxl,
+          horizontal: AppSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.sensors_off_rounded,
+                  size: 48, color: AppColors.textTertiary),
+              const SizedBox(height: AppSpacing.md),
+              Text('No devices configured',
+                  style: AppTextStyles.h4
+                      .copyWith(color: AppColors.textSecondary)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Add your first door controller in the backend\nto start managing gym access.',
+                style:
+                    AppTextStyles.body.copyWith(color: AppColors.textTertiary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;

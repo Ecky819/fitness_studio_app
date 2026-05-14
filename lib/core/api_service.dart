@@ -121,6 +121,11 @@ class ApiService {
 
   // ── Billing ─────────────────────────────────────────────────────────────
 
+  static Future<List<dynamic>> getPlans() async {
+    final data = await _get('/plans');
+    return data['data'] as List<dynamic>? ?? [];
+  }
+
   static Future<Map<String, dynamic>> createCheckoutSession(
     String planId,
   ) =>
