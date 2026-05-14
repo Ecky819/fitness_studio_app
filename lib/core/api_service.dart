@@ -39,6 +39,17 @@ class ApiService {
 
   static const _kAccessToken = 'access_token';
   static const _kRefreshToken = 'refresh_token';
+  static const _kOnboarded = 'onboarded';
+
+  // ── Onboarding ──────────────────────────────────────────────────────────
+
+  static Future<bool> hasCompletedOnboarding() async {
+    final v = await _storage.read(key: _kOnboarded);
+    return v == 'true';
+  }
+
+  static Future<void> markOnboardingComplete() =>
+      _storage.write(key: _kOnboarded, value: 'true');
 
   // ── Token helpers ───────────────────────────────────────────────────────
 

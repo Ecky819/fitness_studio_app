@@ -26,35 +26,17 @@ class _UsersPageState extends ConsumerState<UsersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final usersAsync = ref.watch(usersNotifierProvider);
-
-    return usersAsync.when(
-      loading: () => const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PageHeader(title: 'Users', subtitle: 'Loading…'),
-          Expanded(child: Center(child: CircularProgressIndicator())),
-        ],
-      ),
-      error: (e, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PageHeader(title: 'Users', subtitle: '—'),
-          Expanded(
-            child: Center(
-              child: Text('Error: $e',
-                  style: AppTextStyles.body.copyWith(color: AppColors.error)),
-            ),
-          ),
-        ],
-      ),
-      data: (users) {
-        final filtered = users.where((u) {
-          if (_searchQuery.isEmpty) return true;
-          final q = _searchQuery.toLowerCase();
-          return u.name.toLowerCase().contains(q) ||
-              u.email.toLowerCase().contains(q);
-        }).toList();
+    return AsyncPageScaffold(
+      value: ref.watch(usersNotifierProvider),
+      title: 'Users',
+      builder: (users) {
+        final filtered = _searchQuery.isEmpty
+            ? users
+            : users.where((u) {
+                final q = _searchQuery.toLowerCase();
+                return u.name.toLowerCase().contains(q) ||
+                    u.email.toLowerCase().contains(q);
+              }).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +113,13 @@ class _UsersTable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (users.isEmpty) {
-      return const _EmptyState(message: 'No users match the search.');
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Text('No users match the search.',
+              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+        ),
+      );
     }
 
     return AdminCard(
@@ -140,9 +128,7 @@ class _UsersTable extends ConsumerWidget {
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(AppColors.surfaceVariant),
           dataRowColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.hovered)) {
-              return AppColors.overlayHover;
-            }
+            if (states.contains(WidgetState.hovered)) return AppColors.overlayHover;
             return Colors.transparent;
           }),
           dividerThickness: 1,
@@ -158,69 +144,53 @@ class _UsersTable extends ConsumerWidget {
             DataColumn(label: Text('Actions')),
           ],
           rows: users.map((user) {
-            return DataRow(
-              cells: [
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+            return DataRow(cells: [
+              DataCell(Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _Avatar(name: user.name),
+                  const SizedBox(width: AppSpacing.sm),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _Avatar(name: user.name),
-                      const SizedBox(width: AppSpacing.sm),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(user.name,
-                              style: AppTextStyles.body
-                                  .copyWith(fontWeight: FontWeight.w500)),
-                          if (user.isBlocked)
-                            Text(
-                              'BLOCKED',
-                              style: AppTextStyles.caption
-                                  .copyWith(color: AppColors.error),
-                            ),
-                        ],
-                      ),
+                      Text(user.name,
+                          style: AppTextStyles.body
+                              .copyWith(fontWeight: FontWeight.w500)),
+                      if (user.isBlocked)
+                        Text('BLOCKED',
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.error)),
                     ],
                   ),
-                ),
-                DataCell(Text(user.email,
-                    style: AppTextStyles.body
-                        .copyWith(color: AppColors.textSecondary))),
-                DataCell(
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusFull),
-                    ),
-                    child: Text(
-                      user.plan,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.primary),
-                    ),
-                  ),
-                ),
-                DataCell(
-                  MembershipBadge(status: user.membershipStatus.name),
-                ),
-                DataCell(Text(
-                  formatDate(user.validUntil),
+                ],
+              )),
+              DataCell(Text(user.email,
                   style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
-                )),
-                DataCell(
-                  _BlockButton(
-                    isBlocked: user.isBlocked,
-                    onTap: () => ref
-                        .read(usersNotifierProvider.notifier)
-                        .toggleBlock(user.id),
-                  ),
+                      .copyWith(color: AppColors.textSecondary))),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                 ),
-              ],
-            );
+                child: Text(user.plan,
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.primary)),
+              )),
+              DataCell(MembershipBadge(status: user.membershipStatus.name)),
+              DataCell(Text(
+                formatDate(user.validUntil),
+                style:
+                    AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              )),
+              DataCell(_BlockButton(
+                isBlocked: user.isBlocked,
+                onTap: () => ref
+                    .read(usersNotifierProvider.notifier)
+                    .toggleBlock(user.id),
+              )),
+            ]);
           }).toList(),
         ),
       ),
@@ -277,24 +247,6 @@ class _BlockButton extends StatelessWidget {
       style: TextButton.styleFrom(
         foregroundColor: isBlocked ? AppColors.success : AppColors.error,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final String message;
-  const _EmptyState({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Text(
-          message,
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        ),
       ),
     );
   }

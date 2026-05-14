@@ -16,6 +16,7 @@ class AppControllerNotifier extends StateNotifier<AppState> {
 
   Future<void> onLoginSuccess() => _controller.onLoginSuccess();
   Future<void> onPaymentSuccess() => _controller.onPaymentSuccess();
+  Future<void> completeOnboarding() => _controller.completeOnboarding();
   Future<void> logout() => _controller.logout();
   Future<void> reinitialize() => _controller.initialize();
 }

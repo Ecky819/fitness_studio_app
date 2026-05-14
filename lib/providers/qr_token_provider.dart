@@ -3,32 +3,30 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_service.dart';
 
-class QrTokenProvider extends StateNotifier<String?> {
-  QrTokenProvider() : super(null);
+// Each door gets its own isolated notifier — no shared state between doors.
+class QrTokenNotifier extends StateNotifier<AsyncValue<String?>> {
+  QrTokenNotifier(this.doorId) : super(const AsyncLoading()) {
+    _fetch();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _fetch(),
+    );
+  }
 
+  final String doorId;
   Timer? _refreshTimer;
-  static const refreshInterval = Duration(seconds: 30);
 
-  Future<void> fetchToken(String doorId) async {
+  Future<void> _fetch() async {
     try {
       final data = await ApiService.fetchDoorAccessToken(doorId);
-      if (mounted) state = data['token'] as String?;
-    } catch (e) {
-      debugPrint('Error fetching QR token: $e');
-      if (mounted && state == null) state = null;
+      if (mounted) state = AsyncData(data['token'] as String?);
+    } catch (e, st) {
+      debugPrint('QR token fetch failed for $doorId: $e');
+      if (mounted) state = AsyncError(e, st);
     }
   }
 
-  void startAutoRefresh(String doorId) {
-    _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(refreshInterval, (_) {
-      if (mounted) fetchToken(doorId);
-    });
-  }
-
-  void stopRefresh() {
-    _refreshTimer?.cancel();
-  }
+  Future<void> refresh() => _fetch();
 
   @override
   void dispose() {
@@ -37,18 +35,7 @@ class QrTokenProvider extends StateNotifier<String?> {
   }
 }
 
-final qrTokenProvider = StateNotifierProvider<QrTokenProvider, String?>((ref) {
-  return QrTokenProvider();
-});
-
-// Provider for token with doorId parameter — fetches once, then auto-refreshes.
-final qrTokenForDoorProvider = FutureProvider.family<String?, String>((
-  ref,
-  doorId,
-) async {
-  final notifier = ref.watch(qrTokenProvider.notifier);
-  await notifier.fetchToken(doorId);
-  notifier.startAutoRefresh(doorId);
-  ref.onDispose(notifier.stopRefresh);
-  return ref.read(qrTokenProvider);
-});
+final qrTokenForDoorProvider =
+    StateNotifierProvider.family<QrTokenNotifier, AsyncValue<String?>, String>(
+  (ref, doorId) => QrTokenNotifier(doorId),
+);

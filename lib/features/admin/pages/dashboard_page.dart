@@ -54,8 +54,12 @@ class DashboardPage extends ConsumerWidget {
                     'Logs error: $e',
                     style: AppTextStyles.body.copyWith(color: AppColors.error),
                   ),
-                  data: (logs) =>
-                      _RecentLogsTable(logs: logs.take(10).toList()),
+                  data: (logs) => AdminCard(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: AccessLogDataTable(logs: logs.take(10).toList()),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -119,59 +123,6 @@ class _StatsRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _RecentLogsTable extends StatelessWidget {
-  final List<AccessLog> logs;
-  const _RecentLogsTable({required this.logs});
-
-  @override
-  Widget build(BuildContext context) {
-    return AdminCard(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(
-            AppColors.surfaceVariant,
-          ),
-          dataRowColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.hovered)) {
-              return AppColors.overlayHover;
-            }
-            return Colors.transparent;
-          }),
-          dividerThickness: 1,
-          headingTextStyle:
-              AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary),
-          dataTextStyle: AppTextStyles.body,
-          columns: const [
-            DataColumn(label: Text('Timestamp')),
-            DataColumn(label: Text('User')),
-            DataColumn(label: Text('Door')),
-            DataColumn(label: Text('Result')),
-            DataColumn(label: Text('Reason')),
-          ],
-          rows: logs.map((log) {
-            return DataRow(cells: [
-              DataCell(Text(
-                formatTimestamp(log.timestamp),
-                style:
-                    AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              )),
-              DataCell(Text(log.userName)),
-              DataCell(Text(log.deviceName)),
-              DataCell(ResultBadge(granted: log.granted)),
-              DataCell(Text(
-                log.reason,
-                style:
-                    AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              )),
-            ]);
-          }).toList(),
-        ),
-      ),
     );
   }
 }

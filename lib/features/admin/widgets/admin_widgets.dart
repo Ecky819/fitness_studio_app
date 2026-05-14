@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/colors/app_colors.dart';
 import '../../../design_system/typography/app_text_styles.dart';
 import '../../../design_system/spacing/app_spacing.dart';
+import '../models/admin_models.dart';
 
 // ===== SHARED UTILITIES =====
 
@@ -214,6 +216,98 @@ class PageHeader extends StatelessWidget {
           if (action != null) action!,
         ],
       ),
+    );
+  }
+}
+
+// ===== ASYNC PAGE SCAFFOLD =====
+
+/// Wraps a FutureProvider / AsyncNotifierProvider result with a standard
+/// loading skeleton and error view that matches the admin page layout.
+class AsyncPageScaffold<T> extends StatelessWidget {
+  final AsyncValue<T> value;
+  final String title;
+  final Widget Function(T data) builder;
+
+  const AsyncPageScaffold({
+    super.key,
+    required this.value,
+    required this.title,
+    required this.builder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return value.when(
+      loading: () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(title: title, subtitle: 'Loading…'),
+          const Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      ),
+      error: (e, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(title: title, subtitle: '—'),
+          Expanded(
+            child: Center(
+              child: Text(
+                'Error: $e',
+                style: AppTextStyles.body.copyWith(color: AppColors.error),
+              ),
+            ),
+          ),
+        ],
+      ),
+      data: builder,
+    );
+  }
+}
+
+// ===== ACCESS LOG DATA TABLE =====
+
+/// Renders a styled DataTable of access log entries — shared between
+/// DashboardPage (recent logs) and LogsPage (full list).
+class AccessLogDataTable extends StatelessWidget {
+  final List<AccessLog> logs;
+
+  const AccessLogDataTable({super.key, required this.logs});
+
+  @override
+  Widget build(BuildContext context) {
+    return DataTable(
+      headingRowColor: WidgetStateProperty.all(AppColors.surfaceVariant),
+      dataRowColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered)) return AppColors.overlayHover;
+        return Colors.transparent;
+      }),
+      dividerThickness: 1,
+      headingTextStyle:
+          AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary),
+      dataTextStyle: AppTextStyles.body,
+      columns: const [
+        DataColumn(label: Text('Timestamp')),
+        DataColumn(label: Text('User')),
+        DataColumn(label: Text('Door')),
+        DataColumn(label: Text('Result')),
+        DataColumn(label: Text('Reason')),
+      ],
+      rows: logs.map((log) {
+        return DataRow(cells: [
+          DataCell(Text(
+            formatTimestamp(log.timestamp),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          )),
+          DataCell(Text(log.userName)),
+          DataCell(Text(log.deviceName)),
+          DataCell(ResultBadge(granted: log.granted)),
+          DataCell(Text(
+            log.reason,
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          )),
+        ]);
+      }).toList(),
     );
   }
 }

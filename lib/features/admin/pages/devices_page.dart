@@ -12,29 +12,10 @@ class DevicesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final devicesAsync = ref.watch(devicesProvider);
-
-    return devicesAsync.when(
-      loading: () => const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PageHeader(title: 'Devices', subtitle: 'Loading…'),
-          Expanded(child: Center(child: CircularProgressIndicator())),
-        ],
-      ),
-      error: (e, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PageHeader(title: 'Devices', subtitle: '—'),
-          Expanded(
-            child: Center(
-              child: Text('Error: $e',
-                  style: AppTextStyles.body.copyWith(color: AppColors.error)),
-            ),
-          ),
-        ],
-      ),
-      data: (devices) {
+    return AsyncPageScaffold(
+      value: ref.watch(devicesProvider),
+      title: 'Devices',
+      builder: (devices) {
         final onlineCount = devices.where((d) => d.isOnline).length;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,10 +59,7 @@ class _DevicesGrid extends StatelessWidget {
           spacing: AppSpacing.md,
           runSpacing: AppSpacing.md,
           children: devices.map((d) {
-            return SizedBox(
-              width: itemWidth,
-              child: _DeviceCard(device: d),
-            );
+            return SizedBox(width: itemWidth, child: _DeviceCard(device: d));
           }).toList(),
         );
       },
@@ -118,8 +96,7 @@ class _DeviceCard extends StatelessWidget {
                   color: device.isOnline
                       ? AppColors.success.withValues(alpha: 0.1)
                       : AppColors.surfaceVariant,
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusMd),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 ),
                 child: Icon(
                   Icons.sensors_rounded,
@@ -134,16 +111,10 @@ class _DeviceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(
-            device.name,
-            style: AppTextStyles.h4.copyWith(fontSize: 16),
-          ),
+          Text(device.name, style: AppTextStyles.h4.copyWith(fontSize: 16)),
           const SizedBox(height: 2),
-          Text(
-            device.location,
-            style:
-                AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-          ),
+          Text(device.location,
+              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.md),
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppSpacing.md),
@@ -175,11 +146,7 @@ class _MetaRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _MetaRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _MetaRow({required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -187,19 +154,14 @@ class _MetaRow extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: AppColors.textTertiary),
         const SizedBox(width: 6),
-        Text(
-          '$label:',
-          style:
-              AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
-        ),
+        Text('$label:',
+            style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary)),
         const SizedBox(width: 4),
-        Text(
-          value,
-          style: AppTextStyles.caption.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(value,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            )),
       ],
     );
   }

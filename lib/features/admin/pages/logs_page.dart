@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/colors/app_colors.dart';
 import '../../../design_system/typography/app_text_styles.dart';
 import '../../../design_system/spacing/app_spacing.dart';
-import '../models/admin_models.dart';
 import '../providers/admin_providers.dart';
 import '../widgets/admin_widgets.dart';
 
@@ -37,18 +36,12 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         logsAsync.when(
-          loading: () => const PageHeader(
-            title: 'Access Logs',
-            subtitle: 'Loading…',
-          ),
-          error: (_, __) => const PageHeader(
-            title: 'Access Logs',
-            subtitle: '—',
-          ),
-          data: (logs) => PageHeader(
-            title: 'Access Logs',
-            subtitle: '${logs.length} entries',
-          ),
+          loading: () =>
+              const PageHeader(title: 'Access Logs', subtitle: 'Loading…'),
+          error: (_, __) =>
+              const PageHeader(title: 'Access Logs', subtitle: '—'),
+          data: (logs) =>
+              PageHeader(title: 'Access Logs', subtitle: '${logs.length} entries'),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -70,30 +63,14 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                       filter: _filter,
                       userSearchController: _userSearchController,
                       doorOptions: doorOptions,
-                      onUserSearch: (v) => _applyFilter(LogFilter(
-                        userSearch: v,
-                        doorId: _filter.doorId,
-                        dateFrom: _filter.dateFrom,
-                        dateTo: _filter.dateTo,
-                      )),
-                      onDoorChanged: (v) => _applyFilter(LogFilter(
-                        userSearch: _filter.userSearch,
-                        doorId: v,
-                        dateFrom: _filter.dateFrom,
-                        dateTo: _filter.dateTo,
-                      )),
-                      onDateFromChanged: (v) => _applyFilter(LogFilter(
-                        userSearch: _filter.userSearch,
-                        doorId: _filter.doorId,
-                        dateFrom: v,
-                        dateTo: _filter.dateTo,
-                      )),
-                      onDateToChanged: (v) => _applyFilter(LogFilter(
-                        userSearch: _filter.userSearch,
-                        doorId: _filter.doorId,
-                        dateFrom: _filter.dateFrom,
-                        dateTo: v,
-                      )),
+                      onUserSearch: (v) =>
+                          _applyFilter(_filter.copyWith(userSearch: v)),
+                      onDoorChanged: (v) =>
+                          _applyFilter(_filter.copyWith(doorId: v)),
+                      onDateFromChanged: (v) =>
+                          _applyFilter(_filter.copyWith(dateFrom: v)),
+                      onDateToChanged: (v) =>
+                          _applyFilter(_filter.copyWith(dateTo: v)),
                       onClear: () {
                         _userSearchController.clear();
                         _applyFilter(const LogFilter());
@@ -108,10 +85,25 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Text(
                     'Error: $e',
-                    style:
-                        AppTextStyles.body.copyWith(color: AppColors.error),
+                    style: AppTextStyles.body.copyWith(color: AppColors.error),
                   ),
-                  data: (logs) => _LogsTable(logs: logs),
+                  data: (logs) => logs.isEmpty
+                      ? AdminCard(
+                          padding: const EdgeInsets.all(AppSpacing.xxl),
+                          child: Center(
+                            child: Text(
+                              'No logs match the current filters.',
+                              style: AppTextStyles.body
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        )
+                      : AdminCard(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: AccessLogDataTable(logs: logs),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -121,6 +113,8 @@ class _LogsPageState extends ConsumerState<LogsPage> {
     );
   }
 }
+
+// ── Filter Bar ─────────────────────────────────────────────────────────────────
 
 class _FilterBar extends StatelessWidget {
   final LogFilter filter;
@@ -258,26 +252,21 @@ class _DoorDropdown extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
           value: selectedId,
-          hint: Text(
-            'All doors',
-            style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
-          ),
+          hint: Text('All doors',
+              style:
+                  AppTextStyles.body.copyWith(color: AppColors.textTertiary)),
           style: AppTextStyles.body,
           dropdownColor: AppColors.surface,
           iconEnabledColor: AppColors.textTertiary,
           items: [
             DropdownMenuItem<String?>(
               value: null,
-              child: Text(
-                'All doors',
-                style:
-                    AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              ),
+              child: Text('All doors',
+                  style: AppTextStyles.body
+                      .copyWith(color: AppColors.textSecondary)),
             ),
-            ...options.entries.map((e) => DropdownMenuItem<String?>(
-                  value: e.key,
-                  child: Text(e.value),
-                )),
+            ...options.entries.map((e) =>
+                DropdownMenuItem<String?>(value: e.key, child: Text(e.value))),
           ],
           onChanged: onChanged,
         ),
@@ -301,73 +290,7 @@ class _DatePickerButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.textSecondary,
         side: const BorderSide(color: AppColors.border),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      ),
-    );
-  }
-}
-
-class _LogsTable extends StatelessWidget {
-  final List<AccessLog> logs;
-  const _LogsTable({required this.logs});
-
-  @override
-  Widget build(BuildContext context) {
-    if (logs.isEmpty) {
-      return AdminCard(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Center(
-          child: Text(
-            'No logs match the current filters.',
-            style:
-                AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-          ),
-        ),
-      );
-    }
-
-    return AdminCard(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor:
-              WidgetStateProperty.all(AppColors.surfaceVariant),
-          dataRowColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.hovered)) {
-              return AppColors.overlayHover;
-            }
-            return Colors.transparent;
-          }),
-          dividerThickness: 1,
-          headingTextStyle: AppTextStyles.labelLarge
-              .copyWith(color: AppColors.textSecondary),
-          dataTextStyle: AppTextStyles.body,
-          columns: const [
-            DataColumn(label: Text('Timestamp')),
-            DataColumn(label: Text('User')),
-            DataColumn(label: Text('Door')),
-            DataColumn(label: Text('Result')),
-            DataColumn(label: Text('Reason')),
-          ],
-          rows: logs.map((log) {
-            return DataRow(cells: [
-              DataCell(Text(
-                formatTimestamp(log.timestamp),
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
-              )),
-              DataCell(Text(log.userName)),
-              DataCell(Text(log.deviceName)),
-              DataCell(ResultBadge(granted: log.granted)),
-              DataCell(Text(
-                log.reason,
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
-              )),
-            ]);
-          }).toList(),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }

@@ -52,10 +52,7 @@ class UsersNotifier extends AsyncNotifier<List<AdminUser>> {
   Future<List<AdminUser>> _fetchUsers({String? search}) async {
     final data = await ApiService.getAdminUsers(search: search);
 
-    // API returns array directly or wrapped in data key
-    final rawList = data.values.first is List
-        ? data.values.first as List
-        : [data];
+    final rawList = data['data'] as List? ?? [];
 
     return (rawList).map((e) {
       final u = e as Map<String, dynamic>;
@@ -147,6 +144,24 @@ class LogFilter {
     this.dateFrom,
     this.dateTo,
   });
+
+  static const _unset = Object();
+
+  LogFilter copyWith({
+    String? userSearch,
+    Object? doorId = _unset,
+    Object? dateFrom = _unset,
+    Object? dateTo = _unset,
+  }) =>
+      LogFilter(
+        userSearch: userSearch ?? this.userSearch,
+        doorId: identical(doorId, _unset) ? this.doorId : doorId as String?,
+        dateFrom: identical(dateFrom, _unset)
+            ? this.dateFrom
+            : dateFrom as DateTime?,
+        dateTo:
+            identical(dateTo, _unset) ? this.dateTo : dateTo as DateTime?,
+      );
 }
 
 class LogsNotifier extends AsyncNotifier<List<AccessLog>> {
