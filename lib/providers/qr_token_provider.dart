@@ -1,45 +1,28 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/api_service.dart';
 
 class QrTokenProvider extends StateNotifier<String?> {
-  QrTokenProvider() : super(null) {
-    _startTokenRefresh();
-  }
+  QrTokenProvider() : super(null);
 
   Timer? _refreshTimer;
   static const refreshInterval = Duration(seconds: 30);
 
   Future<void> fetchToken(String doorId) async {
     try {
-      // TODO: Replace with actual API endpoint
-      final response = await http.get(
-        Uri.parse('https://your-api.com/access/token?doorId=$doorId'),
-        headers: {
-          'Authorization': 'Bearer your-auth-token', // TODO: Add proper auth
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        state = data['token'] as String;
-      } else {
-        throw Exception('Failed to fetch token');
-      }
+      final data = await ApiService.fetchDoorAccessToken(doorId);
+      if (mounted) state = data['token'] as String?;
     } catch (e) {
-      print('Error fetching QR token: $e');
-      // Keep existing token if available, or set to null
-      if (state == null) {
-        state = 'error'; // Placeholder for error state
-      }
+      debugPrint('Error fetching QR token: $e');
+      if (mounted && state == null) state = null;
     }
   }
 
-  void _startTokenRefresh() {
+  void startAutoRefresh(String doorId) {
+    _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(refreshInterval, (_) {
-      // Only refresh if we have a doorId context
-      // This will be called when the provider is used with a doorId
+      if (mounted) fetchToken(doorId);
     });
   }
 
@@ -58,12 +41,14 @@ final qrTokenProvider = StateNotifierProvider<QrTokenProvider, String?>((ref) {
   return QrTokenProvider();
 });
 
-// Provider for token with doorId parameter
+// Provider for token with doorId parameter — fetches once, then auto-refreshes.
 final qrTokenForDoorProvider = FutureProvider.family<String?, String>((
   ref,
   doorId,
 ) async {
-  final tokenProvider = ref.watch(qrTokenProvider.notifier);
-  await tokenProvider.fetchToken(doorId);
-  return ref.watch(qrTokenProvider);
+  final notifier = ref.watch(qrTokenProvider.notifier);
+  await notifier.fetchToken(doorId);
+  notifier.startAutoRefresh(doorId);
+  ref.onDispose(notifier.stopRefresh);
+  return ref.read(qrTokenProvider);
 });

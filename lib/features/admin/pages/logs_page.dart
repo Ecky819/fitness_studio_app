@@ -16,6 +16,7 @@ class LogsPage extends ConsumerStatefulWidget {
 
 class _LogsPageState extends ConsumerState<LogsPage> {
   final _userSearchController = TextEditingController();
+  LogFilter _filter = const LogFilter();
 
   @override
   void dispose() {
@@ -23,23 +24,31 @@ class _LogsPageState extends ConsumerState<LogsPage> {
     super.dispose();
   }
 
+  void _applyFilter(LogFilter filter) {
+    setState(() => _filter = filter);
+    ref.read(logsNotifierProvider.notifier).applyFilter(filter);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final logs = ref.watch(filteredLogsProvider);
-    final filter = ref.watch(logFilterProvider);
-    final notifier = ref.read(logFilterProvider.notifier);
-    final allLogs = ref.watch(allLogsProvider);
-
-    final doorOptions = {
-      for (final log in allLogs) log.deviceId: log.deviceName,
-    };
+    final logsAsync = ref.watch(logsNotifierProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PageHeader(
-          title: 'Access Logs',
-          subtitle: '${logs.length} entries',
+        logsAsync.when(
+          loading: () => const PageHeader(
+            title: 'Access Logs',
+            subtitle: 'Loading…',
+          ),
+          error: (_, __) => const PageHeader(
+            title: 'Access Logs',
+            subtitle: '—',
+          ),
+          data: (logs) => PageHeader(
+            title: 'Access Logs',
+            subtitle: '${logs.length} entries',
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -52,21 +61,58 @@ class _LogsPageState extends ConsumerState<LogsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FilterBar(
-                  filter: filter,
-                  userSearchController: _userSearchController,
-                  doorOptions: doorOptions,
-                  onUserSearch: notifier.setUserSearch,
-                  onDoorChanged: notifier.setDeviceId,
-                  onDateFromChanged: notifier.setDateFrom,
-                  onDateToChanged: notifier.setDateTo,
-                  onClear: () {
-                    _userSearchController.clear();
-                    notifier.clearAll();
+                logsAsync.maybeWhen(
+                  data: (logs) {
+                    final doorOptions = {
+                      for (final log in logs) log.deviceId: log.deviceName,
+                    };
+                    return _FilterBar(
+                      filter: _filter,
+                      userSearchController: _userSearchController,
+                      doorOptions: doorOptions,
+                      onUserSearch: (v) => _applyFilter(LogFilter(
+                        userSearch: v,
+                        doorId: _filter.doorId,
+                        dateFrom: _filter.dateFrom,
+                        dateTo: _filter.dateTo,
+                      )),
+                      onDoorChanged: (v) => _applyFilter(LogFilter(
+                        userSearch: _filter.userSearch,
+                        doorId: v,
+                        dateFrom: _filter.dateFrom,
+                        dateTo: _filter.dateTo,
+                      )),
+                      onDateFromChanged: (v) => _applyFilter(LogFilter(
+                        userSearch: _filter.userSearch,
+                        doorId: _filter.doorId,
+                        dateFrom: v,
+                        dateTo: _filter.dateTo,
+                      )),
+                      onDateToChanged: (v) => _applyFilter(LogFilter(
+                        userSearch: _filter.userSearch,
+                        doorId: _filter.doorId,
+                        dateFrom: _filter.dateFrom,
+                        dateTo: v,
+                      )),
+                      onClear: () {
+                        _userSearchController.clear();
+                        _applyFilter(const LogFilter());
+                      },
+                    );
                   },
+                  orElse: () => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                _LogsTable(logs: logs),
+                logsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text(
+                    'Error: $e',
+                    style:
+                        AppTextStyles.body.copyWith(color: AppColors.error),
+                  ),
+                  data: (logs) => _LogsTable(logs: logs),
+                ),
               ],
             ),
           ),
@@ -100,7 +146,7 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasActiveFilter = filter.userSearch.isNotEmpty ||
-        filter.deviceId != null ||
+        filter.doorId != null ||
         filter.dateFrom != null ||
         filter.dateTo != null;
 
@@ -109,7 +155,6 @@ class _FilterBar extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        // User search
         SizedBox(
           width: 220,
           child: TextField(
@@ -126,13 +171,11 @@ class _FilterBar extends StatelessWidget {
             ),
           ),
         ),
-        // Door filter
         _DoorDropdown(
-          selectedId: filter.deviceId,
+          selectedId: filter.doorId,
           options: doorOptions,
           onChanged: onDoorChanged,
         ),
-        // Date from
         _DatePickerButton(
           label: filter.dateFrom != null
               ? 'From: ${formatDate(filter.dateFrom!)}'
@@ -148,7 +191,6 @@ class _FilterBar extends StatelessWidget {
             onDateFromChanged(picked);
           },
         ),
-        // Date to
         _DatePickerButton(
           label: filter.dateTo != null
               ? 'To: ${formatDate(filter.dateTo!)}'
@@ -164,7 +206,6 @@ class _FilterBar extends StatelessWidget {
             onDateToChanged(picked);
           },
         ),
-        // Clear
         if (hasActiveFilter)
           TextButton.icon(
             onPressed: onClear,

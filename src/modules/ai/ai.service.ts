@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Prisma } from '@prisma/client';
 import Redis from 'ioredis';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -63,10 +64,7 @@ export class AiService {
   async getChurnRiskForTenant(tenantId: string, limit = 50): Promise<ChurnRiskResult[]> {
     // Return cached scores first (fast path)
     const cached = await this.prisma.aiInsight.findMany({
-      where: {
-        tenantId,
-        expiresAt: { gt: new Date() },
-      },
+      where: { tenantId, expiresAt: { gt: new Date() } },
       orderBy: { churnScore: 'desc' },
       take: limit,
       include: { user: { select: { email: true } } },
@@ -75,10 +73,10 @@ export class AiService {
     if (cached.length > 0) {
       return cached.map((c) => ({
         userId: c.userId,
-        email: (c as any).user.email,
+        email: c.user.email,
         churnScore: c.churnScore,
         riskLevel: c.riskLevel as RiskLevel,
-        factors: c.factors as ChurnFactor[],
+        factors: c.factors as unknown as ChurnFactor[],
         recommendation: c.recommendation ?? '',
         computedAt: c.computedAt.toISOString(),
       }));
@@ -203,6 +201,9 @@ export class AiService {
 
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+      // Prisma requires explicit cast for JSON fields (ChurnFactor[] → InputJsonValue)
+      const factorsJson = factors as unknown as Prisma.InputJsonValue;
+
       await this.prisma.aiInsight.upsert({
         where: { tenantId_userId: { tenantId, userId: user.id } },
         create: {
@@ -210,14 +211,14 @@ export class AiService {
           userId: user.id,
           churnScore: score,
           riskLevel,
-          factors,
+          factors: factorsJson,
           recommendation,
           expiresAt,
         },
         update: {
           churnScore: score,
           riskLevel,
-          factors,
+          factors: factorsJson,
           recommendation,
           computedAt: now,
           expiresAt,

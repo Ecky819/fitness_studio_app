@@ -57,7 +57,7 @@ class InsightsPage extends ConsumerWidget {
                   loading: () => const _LoadingCard(height: 80),
                   error: (e, _) => _ErrorCard(message: e.toString()),
                   data: (anomalies) => anomalies.isEmpty
-                      ? _EmptyCard(label: 'No anomalies detected — all clear')
+                      ? const _EmptyCard(label: 'No anomalies detected — all clear')
                       : _AnomalyList(anomalies: anomalies),
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -91,7 +91,7 @@ class InsightsPage extends ConsumerWidget {
                   loading: () => const _LoadingCard(height: 200),
                   error: (e, _) => _ErrorCard(message: e.toString()),
                   data: (entries) => entries.isEmpty
-                      ? _EmptyCard(label: 'No churn risk data yet')
+                      ? const _EmptyCard(label: 'No churn risk data yet')
                       : _ChurnTable(entries: entries),
                 ),
               ],
@@ -158,11 +158,11 @@ class _OccupancyCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Row(children: [
+        const Row(children: [
           _CapacityLabel(pct: 0, label: 'Empty'),
-          const Spacer(),
+          Spacer(),
           _CapacityLabel(pct: 50, label: '50%'),
-          const Spacer(),
+          Spacer(),
           _CapacityLabel(pct: 100, label: 'Full'),
         ]),
       ]),

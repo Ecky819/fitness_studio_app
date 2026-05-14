@@ -1,5 +1,5 @@
-/// Premium Fitness App Design System
-/// Complete design system with colors, typography, spacing, components, and theme
+// Premium Fitness App Design System
+// Complete design system with colors, typography, spacing, components, and theme
 
 // ===== COLORS =====
 export 'colors/app_colors.dart';

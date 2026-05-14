@@ -12,8 +12,8 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(adminStatsProvider);
-    final recentLogs = ref.watch(recentLogsProvider);
+    final statsAsync = ref.watch(adminStatsProvider);
+    final logsAsync = ref.watch(logsNotifierProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,11 +33,30 @@ class DashboardPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatsRow(stats: stats),
+                statsAsync.when(
+                  loading: () => const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Text(
+                    'Stats error: $e',
+                    style: AppTextStyles.body.copyWith(color: AppColors.error),
+                  ),
+                  data: (stats) => _StatsRow(stats: stats),
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 Text('Recent Access Events', style: AppTextStyles.h3),
                 const SizedBox(height: AppSpacing.md),
-                _RecentLogsTable(logs: recentLogs),
+                logsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text(
+                    'Logs error: $e',
+                    style: AppTextStyles.body.copyWith(color: AppColors.error),
+                  ),
+                  data: (logs) =>
+                      _RecentLogsTable(logs: logs.take(10).toList()),
+                ),
               ],
             ),
           ),
@@ -57,10 +76,19 @@ class _StatsRow extends StatelessWidget {
       children: [
         Expanded(
           child: StatCard(
-            label: 'Active Users',
-            value: '${stats.activeUsers}',
+            label: 'Total Users',
+            value: '${stats.totalUsers}',
             icon: Icons.people_rounded,
             color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: StatCard(
+            label: 'Active Members',
+            value: '${stats.activeSubscriptions}',
+            icon: Icons.verified_rounded,
+            color: AppColors.success,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -69,7 +97,7 @@ class _StatsRow extends StatelessWidget {
             label: 'Devices Online',
             value: '${stats.devicesOnline}/${stats.totalDevices}',
             icon: Icons.sensors_rounded,
-            color: AppColors.success,
+            color: AppColors.info,
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -78,7 +106,7 @@ class _StatsRow extends StatelessWidget {
             label: 'Access Today',
             value: '${stats.todayAccessCount}',
             icon: Icons.check_circle_rounded,
-            color: AppColors.info,
+            color: AppColors.warning,
           ),
         ),
         const SizedBox(width: AppSpacing.md),

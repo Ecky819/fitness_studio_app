@@ -78,7 +78,7 @@ ThemeData _buildTheme(TenantConfig config) {
       labelStyle: const TextStyle(color: Color(0xFFB3B3CC)),
       hintStyle: const TextStyle(color: Color(0xFF808099)),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: surface,
       elevation: 0,
       shape: RoundedRectangleBorder(

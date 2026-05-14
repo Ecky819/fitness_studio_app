@@ -76,31 +76,19 @@ class AccessLog {
 }
 
 class AdminStats {
-  final int activeUsers;
+  final int totalUsers;
+  final int activeSubscriptions;
   final int devicesOnline;
   final int totalDevices;
   final int todayAccessCount;
   final int failedAccessToday;
 
   const AdminStats({
-    required this.activeUsers,
+    required this.totalUsers,
+    required this.activeSubscriptions,
     required this.devicesOnline,
     required this.totalDevices,
     required this.todayAccessCount,
     required this.failedAccessToday,
-  });
-}
-
-class LogFilter {
-  final String userSearch;
-  final String? deviceId;
-  final DateTime? dateFrom;
-  final DateTime? dateTo;
-
-  const LogFilter({
-    this.userSearch = '',
-    this.deviceId,
-    this.dateFrom,
-    this.dateTo,
   });
 }

@@ -334,8 +334,9 @@ class RevenueBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (data.monthly.isEmpty)
+    if (data.monthly.isEmpty) {
       return const _EmptyChart(label: 'No revenue data');
+    }
 
     final maxY = data.monthly
             .map((m) => m.totalEuros)

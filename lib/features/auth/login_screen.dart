@@ -64,8 +64,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         return;
       }
       await ApiService.login(creds.email, creds.password);
-      if (mounted)
+      if (mounted) {
         await ref.read(appControllerProvider.notifier).onLoginSuccess();
+      }
     } on ApiException catch (_) {
       // Biometric creds stale — disable and ask for manual login
       await BiometricService.disable();

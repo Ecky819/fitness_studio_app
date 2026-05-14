@@ -26,43 +26,67 @@ class _UsersPageState extends ConsumerState<UsersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final users = ref.watch(usersNotifierProvider);
-    final filtered = users.where((u) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return u.name.toLowerCase().contains(q) ||
-          u.email.toLowerCase().contains(q);
-    }).toList();
+    final usersAsync = ref.watch(usersNotifierProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        PageHeader(
-          title: 'Users',
-          subtitle: '${users.length} registered members',
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              0,
-              AppSpacing.xl,
-              AppSpacing.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SearchBar(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _UsersTable(users: filtered),
-              ],
+    return usersAsync.when(
+      loading: () => const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(title: 'Users', subtitle: 'Loading…'),
+          Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      ),
+      error: (e, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PageHeader(title: 'Users', subtitle: '—'),
+          Expanded(
+            child: Center(
+              child: Text('Error: $e',
+                  style: AppTextStyles.body.copyWith(color: AppColors.error)),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+      data: (users) {
+        final filtered = users.where((u) {
+          if (_searchQuery.isEmpty) return true;
+          final q = _searchQuery.toLowerCase();
+          return u.name.toLowerCase().contains(q) ||
+              u.email.toLowerCase().contains(q);
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageHeader(
+              title: 'Users',
+              subtitle: '${users.length} registered members',
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  0,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SearchBar(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _UsersTable(users: filtered),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

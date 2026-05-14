@@ -117,7 +117,7 @@ class ApiService {
 
   // ── Access ──────────────────────────────────────────────────────────────
 
-  static Future<Map<String, dynamic>> getAccessToken(String doorId) =>
+  static Future<Map<String, dynamic>> fetchDoorAccessToken(String doorId) =>
       _post('/access/token', {'doorId': doorId});
 
   static Future<Map<String, dynamic>> generateBleChallenge(
@@ -294,7 +294,10 @@ class ApiService {
     final response = await http.get(uri, headers: _headers(token));
 
     if (response.statusCode == 401 && token != null) {
-      return _retryAfterRefresh(() => http.get(uri, headers: _headers));
+      return _retryAfterRefresh(() async {
+        final t = await getAccessToken();
+        return http.get(uri, headers: _headers(t));
+      });
     }
 
     return _decode(response);
@@ -313,9 +316,10 @@ class ApiService {
     );
 
     if (response.statusCode == 401 && token != null) {
-      return _retryAfterRefresh(
-        () => http.post(uri, headers: _headers, body: jsonEncode(body)),
-      );
+      return _retryAfterRefresh(() async {
+        final t = await getAccessToken();
+        return http.post(uri, headers: _headers(t), body: jsonEncode(body));
+      });
     }
 
     return _decode(response);
@@ -334,9 +338,10 @@ class ApiService {
     );
 
     if (response.statusCode == 401 && token != null) {
-      return _retryAfterRefresh(
-        () => http.patch(uri, headers: _headers, body: jsonEncode(body)),
-      );
+      return _retryAfterRefresh(() async {
+        final t = await getAccessToken();
+        return http.patch(uri, headers: _headers(t), body: jsonEncode(body));
+      });
     }
 
     return _decode(response);

@@ -12,28 +12,51 @@ class DevicesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final devices = ref.watch(devicesProvider);
-    final onlineCount = devices.where((d) => d.isOnline).length;
+    final devicesAsync = ref.watch(devicesProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        PageHeader(
-          title: 'Devices',
-          subtitle: '$onlineCount of ${devices.length} devices online',
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              0,
-              AppSpacing.xl,
-              AppSpacing.xl,
+    return devicesAsync.when(
+      loading: () => const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(title: 'Devices', subtitle: 'Loading…'),
+          Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      ),
+      error: (e, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PageHeader(title: 'Devices', subtitle: '—'),
+          Expanded(
+            child: Center(
+              child: Text('Error: $e',
+                  style: AppTextStyles.body.copyWith(color: AppColors.error)),
             ),
-            child: _DevicesGrid(devices: devices),
           ),
-        ),
-      ],
+        ],
+      ),
+      data: (devices) {
+        final onlineCount = devices.where((d) => d.isOnline).length;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageHeader(
+              title: 'Devices',
+              subtitle: '$onlineCount of ${devices.length} devices online',
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  0,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
+                child: _DevicesGrid(devices: devices),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

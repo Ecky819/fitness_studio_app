@@ -5,7 +5,6 @@ import '../../../design_system/colors/app_colors.dart';
 import '../../../design_system/typography/app_text_styles.dart';
 import '../../../design_system/spacing/app_spacing.dart';
 import '../../../features/admin/widgets/admin_widgets.dart';
-import '../models/tenant_summary.dart';
 import '../providers/super_admin_providers.dart';
 
 class SuperAdminShell extends StatefulWidget {

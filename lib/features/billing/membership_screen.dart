@@ -6,7 +6,8 @@ import '../../core/api_service.dart';
 import '../../design_system/design_system.dart';
 
 class MembershipScreen extends ConsumerStatefulWidget {
-  const MembershipScreen({super.key});
+  final String planId;
+  const MembershipScreen({super.key, this.planId = ''});
 
   @override
   ConsumerState<MembershipScreen> createState() => _MembershipScreenState();
@@ -46,7 +47,8 @@ class _MembershipScreenState extends ConsumerState<MembershipScreen>
 
     try {
       // Create checkout session
-      final checkoutData = await ApiService.createCheckoutSession();
+      final checkoutData =
+          await ApiService.createCheckoutSession(widget.planId);
       final checkoutUrl = checkoutData['url'] as String;
 
       // Open checkout URL

@@ -51,7 +51,6 @@ class UsersNotifier extends AsyncNotifier<List<AdminUser>> {
 
   Future<List<AdminUser>> _fetchUsers({String? search}) async {
     final data = await ApiService.getAdminUsers(search: search);
-    final list = data['data'] as List? ?? (data.containsKey('data') ? [] : [data]);
 
     // API returns array directly or wrapped in data key
     final rawList = data.values.first is List

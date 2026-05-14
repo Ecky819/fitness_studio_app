@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibration/vibration.dart';
 import '../models/access_state.dart';
@@ -56,7 +57,7 @@ class AccessController extends StateNotifier<AccessState> {
       // If we reach here, BLE failed - fallback to QR
       _fallbackToQR();
     } catch (e) {
-      print('BLE access failed: $e');
+      debugPrint('BLE access failed: $e');
       _triggerErrorFeedback();
       _fallbackToQR();
     }

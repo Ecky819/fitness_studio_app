@@ -113,6 +113,7 @@ model User {
   payments      Payment[]
   accessEvents  AccessEvent[]
   invoices      Invoice[]
+  aiInsights    AiInsight[]
 
   // Email is unique per tenant, not globally
   @@unique([tenantId, email])
@@ -229,7 +230,7 @@ model Invoice {
 
 model AccessAttempt {
   id        String   @id @default(uuid())
-  tenantId  String                    // denormalized for cross-tenant audit isolation
+  tenantId  String?                   // populated async; null only in legacy/edge cases
   userId    String
   doorId    String
   grantId   String?
@@ -285,6 +286,7 @@ model AiInsight {
   id             String   @id @default(uuid())
   tenantId       String
   userId         String
+  user           User     @relation(fields: [userId], references: [id])
   churnScore     Int      // 0-100
   riskLevel      String   // LOW | MEDIUM | HIGH
   factors        Json     // array of { factor, weight } objects
