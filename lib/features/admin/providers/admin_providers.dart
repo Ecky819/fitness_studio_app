@@ -2,6 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api_service.dart';
 import '../models/admin_models.dart';
 
+// ── Profile ────────────────────────────────────────────────────────────────
+
+final adminProfileProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ApiService.getProfile();
+});
+
 // ── Stats ──────────────────────────────────────────────────────────────────
 
 final adminStatsProvider = FutureProvider.autoDispose<AdminStats>((ref) async {
@@ -58,22 +65,42 @@ class UsersNotifier extends AsyncNotifier<List<AdminUser>> {
       final u = e as Map<String, dynamic>;
       final membership = u['membership'] as Map<String, dynamic>?;
       return AdminUser(
-        id: u['id'] as String,
-        name: u['email'] as String, // backend returns email, name not stored yet
-        email: u['email'] as String,
+        id: _safeString(u['id']),
+        name: _safeString(u['name'], _safeString(u['email'])),
+        email: _safeString(u['email']),
         membershipStatus: _parseMembershipStatus(
-          membership?['status'] as String?,
+          _safeStringOrNull(membership?['status']),
         ),
-        plan: membership?['plan'] as String? ?? '—',
+        plan: _extractPlanName(membership?['plan']),
         validUntil: membership != null
-            ? DateTime.tryParse(membership['validUntil'] as String? ?? '') ??
+            ? DateTime.tryParse(_safeString(membership['validUntil'])) ??
                 DateTime.now()
             : DateTime.now(),
         isBlocked: u['isBlocked'] as bool? ?? false,
-        createdAt: DateTime.tryParse(u['createdAt'] as String? ?? '') ??
+        createdAt: DateTime.tryParse(_safeString(u['createdAt'])) ??
             DateTime.now(),
       );
     }).toList();
+  }
+
+  String _safeString(dynamic value, [String fallback = '']) {
+    if (value == null) return fallback;
+    if (value is String) return value;
+    if (value is List) {
+      final joined = value.whereType<String>().join(' ').trim();
+      return joined.isEmpty ? fallback : joined;
+    }
+    return value.toString();
+  }
+
+  String? _safeStringOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is List) {
+      final strings = value.whereType<String>();
+      return strings.isEmpty ? null : strings.first;
+    }
+    return value.toString();
   }
 
   Future<void> search(String query) async {
@@ -91,6 +118,17 @@ class UsersNotifier extends AsyncNotifier<List<AdminUser>> {
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetchUsers);
+  }
+
+  String _extractPlanName(dynamic plan) {
+    if (plan == null) return '—';
+    if (plan is String) return plan.isEmpty ? '—' : plan;
+    if (plan is Map) return plan['name'] as String? ?? '—';
+    if (plan is List && plan.isNotEmpty) {
+      final first = plan.first;
+      return first is Map ? first['name'] as String? ?? '—' : first.toString();
+    }
+    return '—';
   }
 
   MembershipStatus _parseMembershipStatus(String? status) {

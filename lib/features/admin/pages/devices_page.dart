@@ -112,7 +112,7 @@ class _DeviceCard extends StatelessWidget {
         : AppColors.border;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -191,11 +191,16 @@ class _MetaRow extends StatelessWidget {
         Text('$label:',
             style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary)),
         const SizedBox(width: 4),
-        Text(value,
+        Flexible(
+          child: Text(
+            value,
             style: AppTextStyles.caption.copyWith(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
-            )),
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

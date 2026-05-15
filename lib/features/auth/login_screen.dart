@@ -265,6 +265,7 @@ class _SignInForm extends ConsumerStatefulWidget {
 
 class _SignInFormState extends ConsumerState<_SignInForm> {
   final _formKey = GlobalKey<FormState>();
+  final _gymCodeController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -281,6 +282,7 @@ class _SignInFormState extends ConsumerState<_SignInForm> {
 
   @override
   void dispose() {
+    _gymCodeController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -330,6 +332,8 @@ class _SignInFormState extends ConsumerState<_SignInForm> {
     });
 
     try {
+      await ApiService.setTenantSlug(
+          _gymCodeController.text.trim().toLowerCase());
       await ApiService.login(
         _emailController.text.trim(),
         _passwordController.text,
@@ -349,7 +353,9 @@ class _SignInFormState extends ConsumerState<_SignInForm> {
       if (mounted) {
         setState(() => _errorMessage = e.isUnauthorized
             ? 'Invalid email or password.'
-            : 'Login failed. Please try again.');
+            : e.statusCode == 404
+                ? 'Gym code not found. Check with your gym.'
+                : 'Login failed. Please try again.');
       }
     } catch (_) {
       if (mounted) {
@@ -368,6 +374,30 @@ class _SignInFormState extends ConsumerState<_SignInForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _InputLabel('Gym Code'),
+          const SizedBox(height: 6),
+          AppLightGlassContainer(
+            child: TextFormField(
+              controller: _gymCodeController,
+              textInputAction: TextInputAction.next,
+              autocorrect: false,
+              style: AppTextStyles.body,
+              decoration: _inputDecoration('e.g. iron-palace').copyWith(
+                prefixIcon: const Icon(
+                  Icons.storefront_rounded,
+                  color: AppColors.textTertiary,
+                  size: 18,
+                ),
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Ask your gym for their code';
+                }
+                return null;
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
           const _InputLabel('Email'),
           const SizedBox(height: 6),
           AppLightGlassContainer(
@@ -533,7 +563,7 @@ class _RegisterFormState extends ConsumerState<_RegisterForm> {
 
     try {
       // Connect to the specified gym before registering.
-      ApiService.setTenantSlug(_gymCodeController.text.trim().toLowerCase());
+      await ApiService.setTenantSlug(_gymCodeController.text.trim().toLowerCase());
       await ApiService.register(
         _emailController.text.trim(),
         _passwordController.text,

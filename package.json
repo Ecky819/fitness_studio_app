@@ -13,7 +13,11 @@
         "test:watch": "jest --watch",
         "test:cov": "jest --coverage",
         "format": "prettier --write \"src/**/*.ts\"",
-        "lint": "eslint '{src,tests}/**/*.ts' --fix"
+        "lint": "eslint '{src,tests}/**/*.ts' --fix",
+        "seed": "ts-node --transpile-only prisma/seed.ts"
+    },
+    "prisma": {
+        "seed": "ts-node --transpile-only prisma/seed.ts"
     },
     "dependencies": {
         "@nestjs/bullmq": "^11.0.4",
@@ -34,6 +38,7 @@
         "class-validator": "^0.14.0",
         "dotenv": "^16.0.0",
         "express-rate-limit": "^8.5.1",
+        "firebase-admin": "^13.10.0",
         "ioredis": "^5.3.1",
         "mqtt": "^5.15.1",
         "nodemailer": "^8.0.7",

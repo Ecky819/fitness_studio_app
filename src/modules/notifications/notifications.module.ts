@@ -6,6 +6,7 @@ import { NotificationsProcessor } from './notifications.processor';
 import { EmailService } from './email.service';
 import { NotificationSchedulerService } from './notification-scheduler.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
     imports: [
@@ -13,6 +14,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
             name: 'notifications',
         }),
         PrismaModule,
+        AuthModule,
     ],
     controllers: [NotificationsController],
     providers: [

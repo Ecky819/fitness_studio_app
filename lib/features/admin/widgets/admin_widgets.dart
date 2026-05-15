@@ -45,7 +45,7 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -200,20 +200,25 @@ class PageHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTextStyles.h2),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style:
-                    AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.h2),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.body
+                      .copyWith(color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
-          if (action != null) action!,
+          if (action != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            action!,
+          ],
         ],
       ),
     );

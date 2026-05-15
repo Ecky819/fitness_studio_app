@@ -30,7 +30,21 @@ class ApiService {
     defaultValue: '',
   );
 
-  static void setTenantSlug(String slug) => _tenantSlug = slug;
+  /// Persists the tenant slug so it survives app restarts.
+  static Future<void> setTenantSlug(String slug) async {
+    _tenantSlug = slug;
+    await _storage.write(key: _kTenantSlug, value: slug);
+  }
+
+  /// Restores a previously saved tenant slug on app startup.
+  /// A dart-define value always takes priority over the stored slug.
+  static Future<void> restoreTenantSlug() async {
+    if (_tenantSlug.isNotEmpty) return; // dart-define already set
+    final saved = await _storage.read(key: _kTenantSlug);
+    if (saved != null && saved.isNotEmpty) _tenantSlug = saved;
+  }
+
+  static bool get hasTenantSlug => _tenantSlug.isNotEmpty;
 
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -40,6 +54,7 @@ class ApiService {
   static const _kAccessToken = 'access_token';
   static const _kRefreshToken = 'refresh_token';
   static const _kOnboarded = 'onboarded';
+  static const _kTenantSlug = 'tenant_slug';
 
   // ── Onboarding ──────────────────────────────────────────────────────────
 
@@ -265,7 +280,7 @@ class ApiService {
       if (dateFrom != null) 'dateFrom': dateFrom,
       if (dateTo != null) 'dateTo': dateTo,
     });
-    return data as List<dynamic>;
+    return data['data'] as List<dynamic>? ?? [];
   }
 
   static Future<List<dynamic>> getAnalyticsPeaks({
@@ -276,7 +291,7 @@ class ApiService {
       if (dateFrom != null) 'dateFrom': dateFrom,
       if (dateTo != null) 'dateTo': dateTo,
     });
-    return data as List<dynamic>;
+    return data['data'] as List<dynamic>? ?? [];
   }
 
   static Future<Map<String, dynamic>> getAnalyticsRevenue({
@@ -410,8 +425,12 @@ class ApiService {
       error = jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {}
 
-    final message = error['message'] as String? ??
-        'Request failed (${response.statusCode})';
+    final rawMessage = error['message'];
+    final message = rawMessage is String
+        ? rawMessage
+        : rawMessage is List
+            ? rawMessage.join(', ')
+            : 'Request failed (${response.statusCode})';
 
     if (kDebugMode) {
       debugPrint(

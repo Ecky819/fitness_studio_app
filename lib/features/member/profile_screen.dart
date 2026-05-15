@@ -133,6 +133,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (confirmed == true && mounted) {
       await ref.read(appControllerProvider.notifier).logout();
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     }
   }
 

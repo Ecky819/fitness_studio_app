@@ -75,6 +75,8 @@ export class AdminService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: query.limit ?? 50,
+      skip: query.offset ?? 0,
     });
 
     return {

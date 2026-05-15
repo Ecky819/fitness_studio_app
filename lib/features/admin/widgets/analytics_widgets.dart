@@ -14,42 +14,50 @@ class AnalyticsKpiRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: StatCard(
-            label: 'Total Users',
-            value: '${data.totalUsers}',
-            icon: Icons.people_rounded,
-            color: AppColors.primary,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                label: 'Total Users',
+                value: '${data.totalUsers}',
+                icon: Icons.people_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: StatCard(
+                label: 'Active Members',
+                value: '${data.activeSubscriptions}',
+                icon: Icons.verified_rounded,
+                color: AppColors.success,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Active Members',
-            value: '${data.activeSubscriptions}',
-            icon: Icons.verified_rounded,
-            color: AppColors.success,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'New This Month',
-            value: '+${data.newUsersThisMonth}',
-            icon: Icons.person_add_rounded,
-            color: AppColors.info,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: StatCard(
-            label: 'Active (30d)',
-            value: '${data.activeUsersLast30Days}',
-            icon: Icons.directions_run_rounded,
-            color: AppColors.warning,
-          ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                label: 'New This Month',
+                value: '+${data.newUsersThisMonth}',
+                icon: Icons.person_add_rounded,
+                color: AppColors.info,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: StatCard(
+                label: 'Active (30d)',
+                value: '${data.activeUsersLast30Days}',
+                icon: Icons.directions_run_rounded,
+                color: AppColors.warning,
+              ),
+            ),
+          ],
         ),
       ],
     );

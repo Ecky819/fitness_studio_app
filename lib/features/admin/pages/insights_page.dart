@@ -65,15 +65,20 @@ class InsightsPage extends ConsumerWidget {
                 // ── Churn Risk ──────────────────────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Churn Risk', style: AppTextStyles.h4),
-                      const SizedBox(height: 4),
-                      Text('Top at-risk members (rule-based scoring)',
-                          style: AppTextStyles.caption
-                              .copyWith(color: AppColors.textTertiary)),
-                    ]),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('Churn Risk', style: AppTextStyles.h4),
+                        const SizedBox(height: 4),
+                        Text('Top at-risk members (rule-based scoring)',
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.textTertiary),
+                            overflow: TextOverflow.ellipsis),
+                      ]),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
                     churnAsync.whenOrNull(
                       data: (list) {
                         final high =
@@ -119,7 +124,7 @@ class _OccupancyCard extends StatelessWidget {
             : AppColors.success;
 
     return AdminCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
@@ -131,17 +136,19 @@ class _OccupancyCard extends StatelessWidget {
             child: Icon(Icons.people_rounded, color: color, size: 20),
           ),
           const SizedBox(width: AppSpacing.md),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Live Occupancy',
-                style: AppTextStyles.h4),
-            Text('Updates in real-time via WebSocket',
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textTertiary)),
-          ]),
-          const Spacer(),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Live Occupancy', style: AppTextStyles.h4),
+              Text('Updates in real-time via WebSocket',
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textTertiary),
+                  overflow: TextOverflow.ellipsis),
+            ]),
+          ),
+          const SizedBox(width: AppSpacing.md),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('${data.count}/${data.capacity}',
-                style: AppTextStyles.h2.copyWith(color: color)),
+                style: AppTextStyles.h3.copyWith(color: color)),
             Text('$pct% capacity',
                 style: AppTextStyles.caption
                     .copyWith(color: AppColors.textSecondary)),

@@ -1,21 +1,31 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { RegisterTokenDto } from './dto/register-token.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
 
 @Controller('notifications')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class NotificationsController {
-    constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
-    @Get('queue-status')
-    @Roles(Role.Admin)
-    async getQueueStatus() {
-        // Return queue statistics for monitoring
-        return {
-            message: 'Queue status endpoint - implement with BullMQ queue stats',
-        };
-    }
+  // Called by the mobile app immediately after login to persist the FCM token.
+  @Patch('token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async registerToken(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: RegisterTokenDto,
+  ): Promise<void> {
+    await this.notificationsService.registerFcmToken(user.sub, dto.fcmToken);
+  }
+
+  @Get('queue-status')
+  @UseGuards(RolesGuard)
+  @Roles(Role.Admin)
+  async getQueueStatus() {
+    return this.notificationsService.getQueueStatus();
+  }
 }

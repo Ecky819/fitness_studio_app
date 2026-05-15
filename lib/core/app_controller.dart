@@ -29,10 +29,21 @@ class AppController {
     _notify();
 
     try {
+      // Restore tenant slug from storage so requests work after a restart.
+      await ApiService.restoreTenantSlug();
+
       // First-time users see onboarding before anything else.
       final onboarded = await ApiService.hasCompletedOnboarding();
       if (!onboarded) {
         _currentState = AppState.onboarding;
+        _notify();
+        return;
+      }
+
+      // Without a gym code the backend cannot resolve the tenant — send the
+      // user back to login so they can enter it (login form now has the field).
+      if (!ApiService.hasTenantSlug) {
+        _currentState = AppState.unauthenticated;
         _notify();
         return;
       }

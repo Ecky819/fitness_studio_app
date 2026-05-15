@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/app_providers.dart';
 import '../../design_system/colors/app_colors.dart';
 import '../../design_system/typography/app_text_styles.dart';
 import '../../design_system/spacing/app_spacing.dart';
@@ -8,6 +10,7 @@ import 'pages/devices_page.dart';
 import 'pages/insights_page.dart';
 import 'pages/logs_page.dart';
 import 'pages/users_page.dart';
+import 'providers/admin_providers.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -233,14 +236,7 @@ class _MobileDrawer extends StatelessWidget {
                 )),
             const Spacer(),
             const Divider(color: AppColors.border, height: 1),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Text(
-                'v1.0.0',
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textTertiary),
-              ),
-            ),
+            const _ProfileFooter(),
           ],
         ),
       ),
@@ -382,14 +378,7 @@ class _Sidebar extends StatelessWidget {
               )),
           const Spacer(),
           const Divider(color: AppColors.border, height: 1),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Text(
-              'v1.0.0',
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textTertiary),
-            ),
-          ),
+          const _ProfileFooter(),
         ],
       ),
     );
@@ -481,6 +470,203 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Profile Footer ─────────────────────────────────────────────────────────────
+
+class _ProfileFooter extends ConsumerWidget {
+  const _ProfileFooter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(adminProfileProvider);
+
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: profileAsync.when(
+        loading: () => const _ProfileSkeleton(),
+        error: (_, __) => _buildRow(
+          initials: '?',
+          email: 'Admin',
+          role: '',
+          ref: ref,
+          context: context,
+        ),
+        data: (profile) {
+          final email = profile['email'] as String? ?? '';
+          final role = profile['role'] as String? ?? 'ADMIN';
+          final initials = _initials(email);
+          return _buildRow(
+            initials: initials,
+            email: email,
+            role: role,
+            ref: ref,
+            context: context,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRow({
+    required String initials,
+    required String email,
+    required String role,
+    required WidgetRef ref,
+    required BuildContext context,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              initials,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                email,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (role.isNotEmpty)
+                Text(
+                  role,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () => _confirmLogout(context, ref),
+          icon: const Icon(Icons.logout_rounded, size: 18),
+          color: AppColors.textTertiary,
+          tooltip: 'Sign out',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+      ],
+    );
+  }
+
+  String _initials(String email) {
+    final local = email.split('@').first;
+    final parts = local.split(RegExp(r'[._\-]+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        title: Text('Sign Out?', style: AppTextStyles.h4),
+        content: Text(
+          'You will be returned to the login screen.',
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Sign Out',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(appControllerProvider.notifier).logout();
+    }
+  }
+}
+
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 11,
+                width: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                height: 9,
+                width: 50,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

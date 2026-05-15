@@ -7,11 +7,12 @@ import { TenantContextService } from '../../common/tenant-context.service';
 import { MqttModule } from '../mqtt/mqtt.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { redisProvider } from '../access/redis.provider';
 
 @Module({
   imports: [PrismaModule, AuthModule, MqttModule],
   controllers: [OccupancyController],
-  providers: [OccupancyGateway, OccupancyService, OccupancyConsumer, TenantContextService],
+  providers: [OccupancyGateway, OccupancyService, OccupancyConsumer, TenantContextService, redisProvider],
   exports: [OccupancyService],
 })
 export class OccupancyModule implements OnModuleInit {
