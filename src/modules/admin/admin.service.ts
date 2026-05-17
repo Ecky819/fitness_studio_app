@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AdminLogsQueryDto, AdminUsersQueryDto } from './dto/admin-query.dto';
+import { AdminLogsQueryDto, AdminUsersQueryDto, FirmwareUpdateDto, ProvisionDeviceDto } from './dto/admin-query.dto';
 import { AccessEventStatus, SubscriptionStatus } from '@prisma/client';
+import { MqttService } from '../mqtt/mqtt.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mqtt: MqttService,
+  ) {}
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +131,46 @@ export class AdminService {
       lastSeenAt: d.lastSeenAt,
       createdAt: d.createdAt,
     }));
+  }
+
+  // ── OTA Firmware ───────────────────────────────────────────────────────────
+
+  async pushFirmwareUpdate(tenantId: string, deviceId: string, dto: FirmwareUpdateDto) {
+    const device = await this.prisma.device.findFirst({ where: { id: deviceId, tenantId } });
+    if (!device) throw new NotFoundException('Device not found');
+
+    this.mqtt.publish(`gym/${tenantId}/door/${device.doorId}/ota`, {
+      action: 'update',
+      firmwareUrl: dto.firmwareUrl,
+      version: dto.version,
+      ...(dto.checksum ? { checksum: dto.checksum } : {}),
+      ts: new Date().toISOString(),
+    });
+
+    return { deviceId, doorId: device.doorId, targetVersion: dto.version, status: 'pending' };
+  }
+
+  // ── Device Provisioning ─────────────────────────────────────────────────────
+
+  async provisionDevice(tenantId: string, dto: ProvisionDeviceDto) {
+    const existing = await this.prisma.device.findUnique({ where: { doorId: dto.doorId } });
+    if (existing) throw new BadRequestException(`doorId "${dto.doorId}" is already registered`);
+
+    const provisioningToken = randomUUID();
+
+    const device = await this.prisma.device.create({
+      data: {
+        tenantId,
+        name: dto.name,
+        doorId: dto.doorId,
+        location: dto.location,
+        provisioningToken,
+        ...(dto.streamUrl ? { streamUrl: dto.streamUrl, type: 'CAMERA' } : {}),
+      },
+      select: { id: true, doorId: true, name: true, location: true, type: true, createdAt: true },
+    });
+
+    return { ...device, provisioningToken };
   }
 
   // ── Logs ───────────────────────────────────────────────────────────────────

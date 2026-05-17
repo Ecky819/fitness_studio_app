@@ -11,6 +11,20 @@ export interface MqttDoorEvent {
   firmwareVersion?: string;
 }
 
+export interface MqttOtaStatus {
+  status: 'started' | 'progress' | 'success' | 'failed';
+  version?: string;
+  progress?: number; // 0–100
+  error?: string;
+  timestamp: string;
+}
+
+export interface MqttCameraOccupancy {
+  count: number;
+  confidence?: number; // 0–1
+  timestamp: string;
+}
+
 /**
  * MQTT service — connects to the external broker as a subscriber.
  *
@@ -36,6 +50,14 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     (tenantId: string, doorId: string, event: MqttDoorEvent) => void
   > = [];
 
+  private readonly otaListeners: Array<
+    (tenantId: string, doorId: string, status: MqttOtaStatus) => void
+  > = [];
+
+  private readonly cameraListeners: Array<
+    (tenantId: string, cameraId: string, event: MqttCameraOccupancy) => void
+  > = [];
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -59,9 +81,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     this.client.on('connect', () => {
       this.logger.log('MQTT broker connected');
-      // Subscribe to all tenants / all doors
       this.client!.subscribe('gym/+/door/+/event');
       this.client!.subscribe('gym/+/door/+/heartbeat');
+      this.client!.subscribe('gym/+/door/+/ota/status');   // OTA update reports
+      this.client!.subscribe('gym/+/camera/+/occupancy'); // AI camera counts
     });
 
     this.client.on('message', (topic, payload) => {
@@ -90,23 +113,52 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     this.accessListeners.push(cb);
   }
 
+  /** Register a callback for OTA status events — called by DeviceProvisioning or admin. */
+  onOtaStatus(
+    cb: (tenantId: string, doorId: string, status: MqttOtaStatus) => void,
+  ) {
+    this.otaListeners.push(cb);
+  }
+
+  /** Register a callback for camera occupancy events — called by OccupancyService. */
+  onCameraOccupancy(
+    cb: (tenantId: string, cameraId: string, event: MqttCameraOccupancy) => void,
+  ) {
+    this.cameraListeners.push(cb);
+  }
+
   // ── Private ─────────────────────────────────────────────────────────────────
 
   private async handleMessage(topic: string, payload: Buffer) {
-    // Parse topic: gym/{tenantId}/door/{doorId}/{channel}
     const parts = topic.split('/');
     if (parts.length < 5 || parts[0] !== 'gym') return;
 
-    const [, tenantId, , doorId, channel] = parts;
-    let body: MqttDoorEvent;
+    const [, tenantId, deviceClass, deviceId, ...rest] = parts;
+    const channel = rest.join('/'); // handles multi-level channels like "ota/status"
 
+    let body: unknown;
     try {
-      body = JSON.parse(payload.toString()) as MqttDoorEvent;
+      body = JSON.parse(payload.toString());
     } catch {
       this.logger.warn(`Malformed MQTT payload on ${topic}`);
       return;
     }
 
+    if (deviceClass === 'door') {
+      await this.handleDoorMessage(tenantId, deviceId, channel, body as MqttDoorEvent);
+    } else if (deviceClass === 'camera' && channel === 'occupancy') {
+      this.cameraListeners.forEach((cb) =>
+        cb(tenantId, deviceId, body as MqttCameraOccupancy),
+      );
+    }
+  }
+
+  private async handleDoorMessage(
+    tenantId: string,
+    doorId: string,
+    channel: string,
+    body: MqttDoorEvent,
+  ) {
     if (channel === 'heartbeat') {
       await this.prisma.device.updateMany({
         where: { doorId, tenantId },
@@ -120,8 +172,22 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (channel === 'event') {
-      // Notify listeners (OccupancyService etc.)
       this.accessListeners.forEach((cb) => cb(tenantId, doorId, body));
+      return;
+    }
+
+    if (channel === 'ota/status') {
+      const status = body as unknown as MqttOtaStatus;
+      this.logger.log(`OTA status ${tenantId}/${doorId}: ${status.status} v${status.version ?? '?'}`);
+
+      if (status.status === 'success' && status.version) {
+        await this.prisma.device.updateMany({
+          where: { doorId, tenantId },
+          data: { firmwareVersion: status.version },
+        });
+      }
+
+      this.otaListeners.forEach((cb) => cb(tenantId, doorId, status));
     }
   }
 }

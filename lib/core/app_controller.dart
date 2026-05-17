@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
+import 'services/push_notification_service.dart';
 
 enum AppState {
   loading,
@@ -78,6 +79,8 @@ class AppController {
 
     try {
       _currentState = await _resolveAuthenticatedState();
+      // Register FCM token after a successful login — best-effort, never blocks.
+      PushNotificationService.registerToken();
     } catch (_) {
       _currentState = AppState.noMembership;
     } finally {

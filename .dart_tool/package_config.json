@@ -2,6 +2,12 @@
   "configVersion": 2,
   "packages": [
     {
+      "name": "_flutterfire_internals",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/_flutterfire_internals-1.3.59",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
       "name": "args",
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/args-2.7.0",
       "packageUri": "lib/",
@@ -98,6 +104,48 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "firebase_core",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_core-3.15.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_core_platform_interface",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_core_platform_interface-6.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_core_web",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_core_web-2.24.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "firebase_messaging",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_messaging-15.2.10",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_messaging_platform_interface",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_messaging_platform_interface-4.6.10",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_messaging_web",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/firebase_messaging_web-3.10.10",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "fixnum",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/fixnum-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "fl_chart",
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/fl_chart-0.68.0",
       "packageUri": "lib/",
@@ -105,7 +153,7 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///Users/marcoeggert/development/Flutter/packages/flutter",
+      "rootUri": "file:///Users/marcoeggert/development/flutter/packages/flutter",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -150,6 +198,30 @@
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/flutter_lints-3.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "flutter_local_notifications",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "flutter_local_notifications_linux",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/flutter_local_notifications_linux-4.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "flutter_local_notifications_platform_interface",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/flutter_local_notifications_platform_interface-7.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "flutter_localizations",
+      "rootUri": "file:///Users/marcoeggert/development/flutter/packages/flutter_localizations",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
     },
     {
       "name": "flutter_plugin_android_lifecycle",
@@ -201,13 +273,13 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///Users/marcoeggert/development/Flutter/packages/flutter_test",
+      "rootUri": "file:///Users/marcoeggert/development/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///Users/marcoeggert/development/Flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///Users/marcoeggert/development/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -356,6 +428,18 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "package_info_plus",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/package_info_plus-9.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "package_info_plus_platform_interface",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/package_info_plus_platform_interface-3.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "path",
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
@@ -452,8 +536,20 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "sentry",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/sentry-8.14.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "sentry_flutter",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/sentry_flutter-8.14.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
       "name": "sky_engine",
-      "rootUri": "file:///Users/marcoeggert/development/Flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///Users/marcoeggert/development/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -498,6 +594,12 @@
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/test_api-0.7.10",
       "packageUri": "lib/",
       "languageVersion": "3.7"
+    },
+    {
+      "name": "timezone",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/timezone-0.9.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.19"
     },
     {
       "name": "typed_data",
@@ -552,6 +654,12 @@
       "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/url_launcher_windows-3.1.5",
       "packageUri": "lib/",
       "languageVersion": "3.8"
+    },
+    {
+      "name": "uuid",
+      "rootUri": "file:///Users/marcoeggert/.pub-cache/hosted/pub.dev/uuid-4.5.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "vector_math",
@@ -634,7 +742,7 @@
   ],
   "generator": "pub",
   "generatorVersion": "3.11.5",
-  "flutterRoot": "file:///Users/marcoeggert/development/Flutter",
+  "flutterRoot": "file:///Users/marcoeggert/development/flutter",
   "flutterVersion": "3.41.9",
   "pubCache": "file:///Users/marcoeggert/.pub-cache"
 }

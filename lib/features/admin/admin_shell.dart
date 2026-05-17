@@ -9,6 +9,7 @@ import 'pages/dashboard_page.dart';
 import 'pages/devices_page.dart';
 import 'pages/insights_page.dart';
 import 'pages/logs_page.dart';
+import 'pages/pricing_page.dart';
 import 'pages/users_page.dart';
 import 'providers/admin_providers.dart';
 
@@ -29,6 +30,7 @@ class _AdminShellState extends State<AdminShell> {
     _NavItem(icon: Icons.people_rounded, label: 'Users'),
     _NavItem(icon: Icons.sensors_rounded, label: 'Devices'),
     _NavItem(icon: Icons.list_alt_rounded, label: 'Logs'),
+    _NavItem(icon: Icons.local_offer_rounded, label: 'Pricing'),
   ];
 
   static const _pages = [
@@ -38,6 +40,7 @@ class _AdminShellState extends State<AdminShell> {
     UsersPage(),
     DevicesPage(),
     LogsPage(),
+    PricingPage(),
   ];
 
   void _select(int i) => setState(() => _selectedIndex = i);
@@ -48,6 +51,14 @@ class _AdminShellState extends State<AdminShell> {
       builder: (context, constraints) {
         if (constraints.maxWidth < 600) {
           return _MobileShell(
+            selectedIndex: _selectedIndex,
+            navItems: _navItems,
+            pages: _pages,
+            onSelect: _select,
+          );
+        }
+        if (constraints.maxWidth < 1024) {
+          return _TabletShell(
             selectedIndex: _selectedIndex,
             navItems: _navItems,
             pages: _pages,
@@ -93,6 +104,72 @@ class _DesktopShell extends StatelessWidget {
           ),
           const VerticalDivider(
               width: 1, thickness: 1, color: AppColors.border),
+          Expanded(
+            child: IndexedStack(index: selectedIndex, children: pages),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tablet Shell (600–1023 px) ────────────────────────────────────────────────
+
+class _TabletShell extends StatelessWidget {
+  final int selectedIndex;
+  final List<_NavItem> navItems;
+  final List<Widget> pages;
+  final ValueChanged<int> onSelect;
+
+  const _TabletShell({
+    required this.selectedIndex,
+    required this.navItems,
+    required this.pages,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Row(
+        children: [
+          // Collapsed icon-only rail on tablet
+          NavigationRail(
+            backgroundColor: AppColors.surface,
+            selectedIndex: selectedIndex,
+            onDestinationSelected: onSelect,
+            labelType: NavigationRailLabelType.selected,
+            selectedIconTheme: const IconThemeData(color: AppColors.primary),
+            unselectedIconTheme: const IconThemeData(color: AppColors.textSecondary),
+            selectedLabelTextStyle: AppTextStyles.caption.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelTextStyle: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: const Icon(Icons.fitness_center_rounded,
+                    color: Colors.white, size: 18),
+              ),
+            ),
+            destinations: navItems
+                .map((item) => NavigationRailDestination(
+                      icon: Icon(item.icon),
+                      label: Text(item.label),
+                    ))
+                .toList(),
+          ),
+          const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
           Expanded(
             child: IndexedStack(index: selectedIndex, children: pages),
           ),

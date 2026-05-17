@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class AdminLogsQueryDto {
@@ -54,4 +54,31 @@ export class AdminUsersQueryDto {
 
 export class BlockUserDto {
   // body intentionally empty — action is inferred from current state
+}
+
+export class FirmwareUpdateDto {
+  @IsString()
+  firmwareUrl: string;
+
+  @IsString()
+  version: string;
+
+  @IsOptional()
+  @IsString()
+  checksum?: string;
+}
+
+export class ProvisionDeviceDto {
+  @IsString()
+  doorId: string;
+
+  @IsString()
+  name: string;
+
+  @IsString()
+  location: string;
+
+  @IsOptional()
+  @IsString()
+  streamUrl?: string;
 }

@@ -76,6 +76,69 @@ export class BillingService {
     return this.stripe.checkout.sessions.create(sessionParams);
   }
 
+  // ── Hardware one-time checkout ──────────────────────────────────────────────
+
+  async createHardwareCheckoutSession(
+    userId: string,
+    stripePriceId: string,
+    quantity = 1,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            stripeAccountId: true,
+            config: { select: { websiteUrl: true } },
+          },
+        },
+      },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    const frontendUrl = (
+      user.tenant.config?.websiteUrl ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'https://example.com'
+    ).replace(/\/$/, '');
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode: 'payment',
+      customer_email: user.email,
+      client_reference_id: user.id,
+      line_items: [{ price: stripePriceId, quantity }],
+      payment_method_types: ['card'],
+      payment_intent_data: {
+        metadata: {
+          type: 'hardware',
+          userId: user.id,
+          tenantId: user.tenantId,
+        },
+      },
+      success_url: `${frontendUrl}/hardware/success`,
+      cancel_url: `${frontendUrl}/hardware/cancel`,
+    };
+
+    // Route payment to the tenant's connected Stripe account if present
+    if (user.tenant.stripeAccountId) {
+      sessionParams.payment_intent_data = {
+        ...sessionParams.payment_intent_data,
+        application_fee_amount: Math.round(
+          (await this.getUnitAmount(stripePriceId)) * quantity * PLATFORM_FEE_BPS / 10000,
+        ),
+        transfer_data: { destination: user.tenant.stripeAccountId },
+      };
+    }
+
+    return this.stripe.checkout.sessions.create(sessionParams);
+  }
+
+  private async getUnitAmount(stripePriceId: string): Promise<number> {
+    const price = await this.stripe.prices.retrieve(stripePriceId);
+    return price.unit_amount ?? 0;
+  }
+
   // ── Stripe Connect: onboard a tenant ────────────────────────────────────────
 
   async createConnectAccountLink(tenantId: string, returnUrl: string) {
@@ -136,9 +199,15 @@ export class BillingService {
 
     try {
       switch (event.type) {
-        case 'checkout.session.completed':
-          await this.onCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          if (session.metadata?.type === 'hardware') {
+            await this.onHardwareCheckoutCompleted(session);
+          } else {
+            await this.onCheckoutSessionCompleted(session);
+          }
           break;
+        }
         case 'invoice.payment_succeeded':
           await this.onInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
           break;
@@ -194,6 +263,20 @@ export class BillingService {
       default:
         throw new InternalServerErrorException(`Unsupported Stripe status: ${status}`);
     }
+  }
+
+  private async onHardwareCheckoutCompleted(session: Stripe.Checkout.Session) {
+    const { userId, tenantId } = (session.payment_intent_data as any)?.metadata ??
+      session.metadata ?? {};
+
+    if (!userId || !tenantId) {
+      this.logger.warn(`Hardware checkout missing metadata: ${session.id}`);
+      return;
+    }
+
+    this.logger.log(`Hardware purchase confirmed: user=${userId} tenant=${tenantId}`);
+    // Device provisioning token is generated separately by the admin
+    // via POST /admin/devices/provision after the hardware ships.
   }
 
   private async onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {

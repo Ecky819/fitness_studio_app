@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fitness-studio-api-service
+  namespace: fitness-studio
+  labels:
+    app: fitness-studio-api
+spec:
+  type: ClusterIP
+  selector:
+    app: fitness-studio-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP

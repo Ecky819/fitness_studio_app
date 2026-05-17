@@ -45,6 +45,11 @@ export class OccupancyService implements OnModuleInit {
         void this.recordEntry(tenantId, event.userId);
       }
     });
+
+    // React to AI camera occupancy counts from MQTT
+    this.mqttService.onCameraOccupancy((tenantId, cameraId, event) => {
+      void this.recordCameraCount(tenantId, cameraId, event.count);
+    });
   }
 
   setGateway(gw: OccupancyGateway) {
@@ -53,17 +58,55 @@ export class OccupancyService implements OnModuleInit {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
+  /**
+   * Called when an AI camera reports its current people-count.
+   * Replaces the Redis counter with the camera's absolute reading.
+   * The camera is the ground truth; door-based counting is additive but the
+   * camera overrides with a more accurate snapshot.
+   */
+  async recordCameraCount(tenantId: string, cameraId: string, count: number) {
+    const key = `occupancy:entries:${tenantId}`;
+    const now = Date.now();
+    const expireAt = now + this.visitDurationMin * 60 * 1000;
+
+    // Replace the sorted set with `count` synthetic entries so existing live-
+    // count reads stay consistent. Use camera-prefixed members to distinguish
+    // from door-entry members.
+    const pipe = this.redis.pipeline();
+    pipe.zremrangebyscore(key, '-inf', now);   // prune expired first
+    const currentCount = await this.redis.zcard(key);
+
+    if (count > currentCount) {
+      // Add synthetic entries to make up the delta
+      const newMembers: (string | number)[] = [];
+      for (let i = 0; i < count - currentCount; i++) {
+        newMembers.push(expireAt, `cam:${cameraId}:${now + i}`);
+      }
+      pipe.zadd(key, ...newMembers);
+    } else if (count < currentCount) {
+      // Remove excess synthetic camera entries (oldest first)
+      pipe.zpopmin(key, currentCount - count);
+    }
+    await pipe.exec();
+
+    const liveCount = await this.getLiveCount(tenantId);
+    this.gateway?.broadcast(tenantId, liveCount);
+    await this.checkCapacityAlert(tenantId, liveCount);
+
+    this.logger.debug(`Camera ${cameraId} → ${count} people in ${tenantId}`);
+  }
+
   /** Called by AccessService on every GRANTED event. */
   async recordEntry(tenantId: string, userId?: string) {
     const now = Date.now();
     const expireAt = now + this.visitDurationMin * 60 * 1000;
 
-    // Store entry as a sorted set member: score = expireAt, member = userId|nonce
     const member = userId ?? `anon:${now}`;
     await this.redis.zadd(`occupancy:entries:${tenantId}`, expireAt, member);
 
     const count = await this.getLiveCount(tenantId);
     this.gateway?.broadcast(tenantId, count);
+    await this.checkCapacityAlert(tenantId, count);
   }
 
   async getLiveCount(tenantId: string): Promise<number> {
@@ -94,6 +137,36 @@ export class OccupancyService implements OnModuleInit {
       percentage: Math.round((count / capacity) * 100),
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  async getHeatmap(tenantId: string, days = 28) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const snapshots = await this.prisma.occupancySnapshot.findMany({
+      where: { tenantId, recordedAt: { gte: since } },
+      select: { count: true, recordedAt: true },
+    });
+
+    // 7 rows (Mon=0 … Sun=6) × 24 columns (hour 0–23)
+    const sums = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+    const cnts = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+
+    for (const s of snapshots) {
+      const d = new Date(s.recordedAt);
+      const dow = (d.getDay() + 6) % 7; // JS Sun=0 → Mon=0
+      const hour = d.getHours();
+      sums[dow][hour] += s.count;
+      cnts[dow][hour]++;
+    }
+
+    const heatmap = sums.map((row, dow) =>
+      row.map((sum, hour) => ({
+        day: dow,
+        hour,
+        avg: cnts[dow][hour] > 0 ? Math.round(sum / cnts[dow][hour]) : 0,
+      })),
+    );
+
+    return { heatmap, days, generatedAt: new Date().toISOString() };
   }
 
   async getOccupancyHistory(tenantId: string, hours = 24) {
@@ -131,6 +204,27 @@ export class OccupancyService implements OnModuleInit {
       await this.prisma.occupancySnapshot.create({
         data: { tenantId: tenant.id, count, capacity },
       });
+    }
+  }
+
+  private async checkCapacityAlert(tenantId: string, count: number) {
+    const config = await this.prisma.tenantConfig.findUnique({
+      where: { tenantId },
+      select: { features: true },
+    });
+    const features = (config?.features as Record<string, unknown>) ?? {};
+    const capacity = (features['GYM_CAPACITY'] as number) ?? this.defaultCapacity;
+    const alertThresholdPct = (features['ALERT_THRESHOLD_PCT'] as number) ?? 80;
+    const pct = Math.round((count / capacity) * 100);
+
+    if (pct >= alertThresholdPct) {
+      // Throttle: fire at most once per 15 minutes per tenant
+      const throttleKey = `capacity:alert:${tenantId}`;
+      if (!(await this.redis.get(throttleKey))) {
+        await this.redis.setex(throttleKey, 900, '1');
+        this.gateway?.broadcastCapacityAlert(tenantId, count, capacity, pct);
+        this.logger.warn(`Capacity alert: ${tenantId} at ${pct}% (${count}/${capacity})`);
+      }
     }
   }
 

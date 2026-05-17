@@ -3,5 +3,5 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class RegisterTokenDto {
   @IsString()
   @IsNotEmpty()
-  fcmToken: string;
+  fcmToken!: string;
 }

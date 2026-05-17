@@ -93,6 +93,27 @@ export class EmailService {
         await this.sendEmail(email, subject, html);
     }
 
+    async sendRetentionAlert(email: string, userName: string, churnScore: number, recommendation: string): Promise<void> {
+        const urgencyColor = churnScore >= 80 ? '#e74c3c' : '#f39c12';
+        const subject = `⚠️ We miss you at NextGen Gym — ${userName}`;
+        const html = this.getStyledEmailTemplate(`
+            <h1 style="color: ${urgencyColor};">We miss you, ${userName}!</h1>
+            <p>We've noticed you haven't visited recently, and we want to make sure everything is okay.</p>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <strong>💪 Don't let your progress slip away.</strong><br>
+                <p style="margin: 8px 0 0 0;">${recommendation}</p>
+            </div>
+            <p>Your fitness journey matters to us. Come back and keep pushing toward your goals!</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${this.configService.get<string>('FRONTEND_URL')}/access" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+                    Open the Gym Door
+                </a>
+            </div>
+            <p style="color: #999; font-size: 13px;">Questions? Reply to this email or contact support@nextgengym.com</p>
+        `);
+        await this.sendEmail(email, subject, html);
+    }
+
     async sendPasswordResetEmail(email: string, resetLink: string): Promise<void> {
         const subject = '🔐 Reset Your NextGen Gym Password';
         const html = this.getStyledEmailTemplate(`

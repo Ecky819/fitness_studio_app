@@ -1,0 +1,93 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Fitness Studio",
+  "@appTitle": { "description": "Application title" },
+
+  "adminTitle": "Admin Dashboard",
+  "@adminTitle": { "description": "Web admin dashboard title" },
+
+  "memberPortal": "Member Portal",
+  "@memberPortal": { "description": "Member web portal title" },
+
+  "signOut": "Sign Out",
+  "@signOut": { "description": "Sign out button label" },
+
+  "signOutConfirmTitle": "Sign Out?",
+  "@signOutConfirmTitle": { "description": "Sign out confirm dialog title" },
+
+  "signOutConfirmBody": "You will be returned to the login screen.",
+  "@signOutConfirmBody": { "description": "Sign out confirm dialog body" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel button label" },
+
+  "loading": "Loading…",
+  "@loading": { "description": "Generic loading text" },
+
+  "membership": "Membership",
+  "@membership": { "description": "Membership section title" },
+
+  "membershipActive": "Active",
+  "@membershipActive": { "description": "Active membership status" },
+
+  "membershipCanceled": "Canceled",
+  "@membershipCanceled": { "description": "Canceled membership status" },
+
+  "membershipPastDue": "Past Due",
+  "@membershipPastDue": { "description": "Past due membership status" },
+
+  "membershipExpired": "Expired",
+  "@membershipExpired": { "description": "Expired membership status" },
+
+  "membershipPlan": "Plan",
+  "@membershipPlan": { "description": "Plan label" },
+
+  "membershipValidUntil": "Valid until",
+  "@membershipValidUntil": { "description": "Valid until label" },
+
+  "renewMembership": "Renew Membership",
+  "@renewMembership": { "description": "Renew membership button" },
+
+  "invoices": "Invoices",
+  "@invoices": { "description": "Invoices section title" },
+
+  "noInvoices": "No invoices yet.",
+  "@noInvoices": { "description": "Empty invoice list message" },
+
+  "downloadPdf": "Download PDF",
+  "@downloadPdf": { "description": "Download PDF tooltip" },
+
+  "errorGeneric": "Something went wrong. Please try again.",
+  "@errorGeneric": { "description": "Generic error message" },
+
+  "errorUnauthorized": "Your session expired. Please log in again.",
+  "@errorUnauthorized": { "description": "Session expired error" },
+
+  "errorPaymentFailed": "Payment failed. Please update your payment method.",
+  "@errorPaymentFailed": { "description": "Payment failed notification" },
+
+  "errorAccessDenied": "Access denied. Please check your membership status.",
+  "@errorAccessDenied": { "description": "Access denied error" },
+
+  "navDashboard": "Dashboard",
+  "@navDashboard": { "description": "Navigation item: Dashboard" },
+
+  "navAnalytics": "Analytics",
+  "@navAnalytics": { "description": "Navigation item: Analytics" },
+
+  "navInsights": "AI Insights",
+  "@navInsights": { "description": "Navigation item: AI Insights" },
+
+  "navUsers": "Users",
+  "@navUsers": { "description": "Navigation item: Users" },
+
+  "navDevices": "Devices",
+  "@navDevices": { "description": "Navigation item: Devices" },
+
+  "navLogs": "Logs",
+  "@navLogs": { "description": "Navigation item: Logs" },
+
+  "navPricing": "Pricing",
+  "@navPricing": { "description": "Navigation item: Pricing" }
+}

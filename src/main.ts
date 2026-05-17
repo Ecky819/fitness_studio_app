@@ -1,4 +1,8 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+// Sentry must be the very first import so it can instrument all subsequent modules.
+import { initSentry } from './common/sentry/sentry.init';
+initSentry();
+
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { json } from 'body-parser';
@@ -6,16 +10,18 @@ import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { AppLoggerService } from './common/logger/app-logger.service';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
-        // NestJS built-in logger — replace with Pino in production via
-        // nestjs-pino for JSON structured logging + log levels via LOG_LEVEL env.
-        logger: ['error', 'warn', 'log', 'debug'],
+        bufferLogs: true,
     });
 
+    const logger = app.get(AppLoggerService);
+    app.useLogger(logger);
+
     const configService = app.get(ConfigService);
-    const logger = new Logger('Bootstrap');
 
     // Correlation ID middleware — every request gets a traceable X-Request-ID.
     app.use((req: Request, res: Response, next: NextFunction) => {
@@ -40,9 +46,11 @@ async function bootstrap() {
         new ValidationPipe({
             whitelist: true,
             transform: true,
-            forbidNonWhitelisted: true, // reject unknown fields instead of silently stripping
+            forbidNonWhitelisted: true,
         }),
     );
+
+    app.useGlobalInterceptors(new LoggingInterceptor(logger));
 
     app.setGlobalPrefix('api', {
         // Health + readiness probes must NOT carry the /api prefix so
@@ -54,7 +62,7 @@ async function bootstrap() {
     const env = configService.get<string>('NODE_ENV') ?? 'development';
 
     await app.listen(port);
-    logger.log(`🚀 NextGen Gym OS running on http://localhost:${port}/api  [${env}]`);
+    logger.log(`🚀 NextGen Gym OS running on http://localhost:${port}/api  [${env}]`, 'Bootstrap');
 }
 
 bootstrap();

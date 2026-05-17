@@ -141,3 +141,28 @@ final anomaliesProvider = FutureProvider.autoDispose<List<AnomalyEntry>>((ref) a
   final raw = await ApiService.getAnomalies();
   return raw.map((e) => AnomalyEntry.fromJson(e as Map<String, dynamic>)).toList();
 });
+
+// ── Heatmap ────────────────────────────────────────────────────────────────
+
+class HeatmapCell {
+  final int day;
+  final int hour;
+  final int avg;
+  const HeatmapCell({required this.day, required this.hour, required this.avg});
+}
+
+final heatmapProvider = FutureProvider.autoDispose<List<List<HeatmapCell>>>((ref) async {
+  final data = await ApiService.getOccupancyHeatmap(days: 28);
+  final raw = data['heatmap'] as List? ?? [];
+  return raw.map((row) {
+    final cells = row as List;
+    return cells.map((c) {
+      final cell = c as Map<String, dynamic>;
+      return HeatmapCell(
+        day: cell['day'] as int,
+        hour: cell['hour'] as int,
+        avg: cell['avg'] as int,
+      );
+    }).toList();
+  }).toList();
+});

@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/colors/app_colors.dart';
@@ -15,6 +16,7 @@ class InsightsPage extends ConsumerWidget {
     final occupancyAsync = ref.watch(occupancyProvider);
     final churnAsync = ref.watch(churnRiskProvider);
     final anomaliesAsync = ref.watch(anomaliesProvider);
+    final heatmapAsync = ref.watch(heatmapProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,6 +30,7 @@ class InsightsPage extends ConsumerWidget {
               ref.invalidate(occupancyProvider);
               ref.invalidate(churnRiskProvider);
               ref.invalidate(anomaliesProvider);
+              ref.invalidate(heatmapProvider);
             },
           ),
         ),
@@ -59,6 +62,22 @@ class InsightsPage extends ConsumerWidget {
                   data: (anomalies) => anomalies.isEmpty
                       ? const _EmptyCard(label: 'No anomalies detected — all clear')
                       : _AnomalyList(anomalies: anomalies),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Occupancy Heatmap ───────────────────────────────────────
+                Text('Occupancy Heatmap', style: AppTextStyles.h4),
+                const SizedBox(height: 4),
+                Text('Avg. visitors per hour · last 28 days',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textTertiary)),
+                const SizedBox(height: AppSpacing.md),
+                heatmapAsync.when(
+                  loading: () => const _LoadingCard(height: 140),
+                  error: (e, _) => _ErrorCard(message: e.toString()),
+                  data: (matrix) => matrix.isEmpty
+                      ? const _EmptyCard(label: 'Not enough data yet')
+                      : _HeatmapCard(matrix: matrix),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
@@ -210,6 +229,11 @@ class _AnomalyList extends StatelessWidget {
                 Icons.nightlight_round,
                 AppColors.warning,
                 'Off-Hours Access'
+              ),
+            'GHOST_MEMBER' => (
+                Icons.person_off_rounded,
+                AppColors.textTertiary,
+                'Ghost Member'
               ),
             _ => (Icons.info_rounded, AppColors.info, a.type),
           };
@@ -412,4 +436,113 @@ class _EmptyCard extends StatelessWidget {
           Text(label, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
         ]),
       );
+}
+
+// ── Heatmap Card ───────────────────────────────────────────────────────────────
+
+class _HeatmapCard extends StatelessWidget {
+  final List<List<HeatmapCell>> matrix;
+  const _HeatmapCard({required this.matrix});
+
+  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  @override
+  Widget build(BuildContext context) {
+    // Find global max for colour normalisation
+    final maxVal = matrix.fold<int>(
+      1,
+      (m, row) => row.fold(m, (m2, cell) => max(m2, cell.avg)),
+    );
+
+    return AdminCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Hour axis labels (0, 6, 12, 18, 23)
+          Padding(
+            padding: const EdgeInsets.only(left: 36),
+            child: Row(
+              children: List.generate(24, (h) {
+                final show = h == 0 || h == 6 || h == 12 || h == 18 || h == 23;
+                return Expanded(
+                  child: show
+                      ? Text('$h',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.textTertiary, fontSize: 9),
+                          textAlign: TextAlign.center)
+                      : const SizedBox.shrink(),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Grid rows (one per day)
+          ...List.generate(7, (dow) {
+            final row = dow < matrix.length ? matrix[dow] : <HeatmapCell>[];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1.5),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 32,
+                    child: Text(
+                      _days[dow],
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textTertiary,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                  ...List.generate(24, (hour) {
+                    final cell = hour < row.length ? row[hour] : null;
+                    final intensity = cell != null && maxVal > 0
+                        ? (cell.avg / maxVal).clamp(0.0, 1.0)
+                        : 0.0;
+                    final color = Color.lerp(
+                      AppColors.success.withValues(alpha: 0.15),
+                      AppColors.error,
+                      intensity,
+                    )!;
+                    return Expanded(
+                      child: Tooltip(
+                        message: cell != null ? '${_days[dow]} $hour:00 — avg ${cell.avg}' : '',
+                        child: Container(
+                          height: 14,
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: AppSpacing.sm),
+          // Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Low', style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary, fontSize: 9)),
+              const SizedBox(width: 4),
+              ...List.generate(5, (i) => Container(
+                width: 12, height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 1),
+                decoration: BoxDecoration(
+                  color: Color.lerp(AppColors.success.withValues(alpha: 0.15), AppColors.error, i / 4)!,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              )),
+              const SizedBox(width: 4),
+              Text('High', style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary, fontSize: 9)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -20,12 +20,17 @@ import { MqttModule } from './modules/mqtt/mqtt.module';
 import { OccupancyModule } from './modules/occupancy/occupancy.module';
 import { AiModule } from './modules/ai/ai.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+// Phase 4 — Hardware
+import { AccessHardwareModule } from './modules/access-hardware/access-hardware.module';
+import { DeviceProvisioningModule } from './modules/device-provisioning/device-provisioning.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    LoggerModule,
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60, limit: 10 }] }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -54,11 +59,14 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     NotificationsModule,
     TenantModule,
     SuperAdminModule,
-    // Phase 4
+    // Phase 4 — AI & Edge
     MqttModule,
     OccupancyModule,
     AiModule,
     PricingModule,
+    // Phase 4 — Hardware
+    AccessHardwareModule,
+    DeviceProvisioningModule,
   ],
 })
 export class AppModule implements NestModule {
@@ -69,6 +77,7 @@ export class AppModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: 'ready', method: RequestMethod.GET },
         { path: 'api/super-admin/(.*)', method: RequestMethod.ALL },
+        { path: 'api/devices/handshake', method: RequestMethod.POST },
       )
       .forRoutes('*');
   }

@@ -42,6 +42,11 @@ enum SaasPlan {
   ENTERPRISE // Unlimited doors/members, Stripe Connect, API access
 }
 
+enum DeviceType {
+  DOOR_CONTROLLER  // BLE/MQTT door controller (ESP32 or third-party)
+  CAMERA           // AI occupancy camera (RTSP stream)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tenant (the gym operator — top-level isolation boundary)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,6 +93,11 @@ model TenantConfig {
   // Feature flags as JSON — keyed by SaasFeature enum strings.
   // Example: {"ADVANCED_ANALYTICS": true, "MULTI_DOOR": false}
   features Json @default("{}")
+
+  // Hardware adapter used for all doors in this tenant.
+  // Override per device via Device.hardwareAdapter.
+  // Values: "ble-secure" | "kisi" | "brivo" | "tapkey"
+  hardwareAdapter String @default("ble-secure")
 
   updatedAt DateTime @updatedAt
 }
@@ -146,8 +156,13 @@ model Subscription {
   status           SubscriptionStatus
   validUntil       DateTime
   currentPeriodEnd DateTime
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+
+  // Usage-based billing — Stripe subscription item ID for the metered access price.
+  // Null = flat-rate subscription (default). Non-null = metered; usage reported monthly.
+  stripeMeteredItemId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   payments Payment[]
   invoices Invoice[]
@@ -201,19 +216,32 @@ model AccessEvent {
 }
 
 model Device {
-  id              String    @id @default(uuid())
+  id              String     @id @default(uuid())
   tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  tenant          Tenant     @relation(fields: [tenantId], references: [id])
   name            String
-  doorId          String    @unique
+  doorId          String     @unique        // logical door/camera ID (e.g. "main_door", "cam_01")
   location        String
+  type            DeviceType @default(DOOR_CONTROLLER)
   firmwareVersion String?
-  isOnline        Boolean   @default(false)
+  isOnline        Boolean    @default(false)
   lastSeenAt      DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+
+  // Provisioning — set on factory registration, cleared after first handshake
+  provisioningToken String?  @unique
+  provisionedAt     DateTime?
+
+  // Per-device hardware adapter override (null = inherit from TenantConfig)
+  hardwareAdapter String?
+
+  // CAMERA type only — RTSP stream URL for the AI edge processing pipeline
+  streamUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, type])
 }
 
 model Invoice {

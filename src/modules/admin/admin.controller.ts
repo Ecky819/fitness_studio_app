@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -13,7 +15,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { TenantContextService } from '../../common/tenant-context.service';
 import { AdminService } from './admin.service';
-import { AdminLogsQueryDto, AdminUsersQueryDto } from './dto/admin-query.dto';
+import { AdminLogsQueryDto, AdminUsersQueryDto, FirmwareUpdateDto, ProvisionDeviceDto } from './dto/admin-query.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -49,5 +51,20 @@ export class AdminController {
   @Roles(Role.Admin, Role.Trainer)
   getLogs(@Query() query: AdminLogsQueryDto) {
     return this.adminService.getLogs(this.tenantCtx.tenantId, query);
+  }
+
+  // POST /admin/devices/provision — register a new device and return a one-time provisioning token
+  @Post('devices/provision')
+  provisionDevice(@Body() dto: ProvisionDeviceDto) {
+    return this.adminService.provisionDevice(this.tenantCtx.tenantId, dto);
+  }
+
+  // PATCH /admin/devices/:id/firmware — push an OTA update command via MQTT
+  @Patch('devices/:id/firmware')
+  pushFirmware(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: FirmwareUpdateDto,
+  ) {
+    return this.adminService.pushFirmwareUpdate(this.tenantCtx.tenantId, id, dto);
   }
 }

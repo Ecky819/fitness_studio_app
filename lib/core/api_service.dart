@@ -136,6 +136,11 @@ class ApiService {
 
   // ── Billing ─────────────────────────────────────────────────────────────
 
+  static Future<List<dynamic>> getMyInvoices() async {
+    final data = await _get('/invoice/my');
+    return data['data'] as List<dynamic>? ?? [];
+  }
+
   static Future<List<dynamic>> getPlans() async {
     final data = await _get('/plans');
     return data['data'] as List<dynamic>? ?? [];
@@ -156,6 +161,16 @@ class ApiService {
     String deviceId,
   ) =>
       _post('/access/ble/challenge', {'doorId': doorId, 'deviceId': deviceId});
+
+  // ── Notifications ────────────────────────────────────────────────────────
+
+  /// Persists the FCM device token so the backend can send push notifications.
+  /// Best-effort — failure is swallowed to never block login.
+  static Future<void> registerFcmToken(String token) async {
+    try {
+      await _patch('/notifications/token', {'fcmToken': token});
+    } catch (_) {}
+  }
 
   // ── Admin ───────────────────────────────────────────────────────────────
 
@@ -248,6 +263,9 @@ class ApiService {
     return data['data'] as List<dynamic>? ?? [data];
   }
 
+  static Future<Map<String, dynamic>> getOccupancyHeatmap({int days = 28}) =>
+      _get('/occupancy/heatmap', params: {'days': '$days'});
+
   // ── AI Insights ───────────────────────────────────────────────────────────
 
   static Future<List<dynamic>> getChurnRisk({int limit = 50}) async {
@@ -269,6 +287,15 @@ class ApiService {
     final data = await _get('/pricing/rules');
     return data['data'] as List<dynamic>? ?? (data.values.first is List ? data.values.first as List : []);
   }
+
+  static Future<Map<String, dynamic>> createPricingRule(Map<String, dynamic> body) =>
+      _post('/pricing/rules', body);
+
+  static Future<void> togglePricingRule(String id) =>
+      _patch('/pricing/rules/$id/toggle', {});
+
+  static Future<void> deletePricingRule(String id) =>
+      _delete('/pricing/rules/$id');
 
   // ── Analytics ────────────────────────────────────────────────────────────
 
@@ -375,6 +402,22 @@ class ApiService {
       });
     }
 
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> _delete(String path) async {
+    final uri = Uri.parse('$_baseUrl$path');
+    final token = await getAccessToken();
+    final response = await http.delete(uri, headers: _headers(token));
+
+    if (response.statusCode == 401 && token != null) {
+      return _retryAfterRefresh(() async {
+        final t = await getAccessToken();
+        return http.delete(uri, headers: _headers(t));
+      });
+    }
+
+    if (response.statusCode == 204 || response.body.isEmpty) return {};
     return _decode(response);
   }
 

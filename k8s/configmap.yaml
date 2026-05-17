@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fitness-studio-config
+  namespace: fitness-studio
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  # Database
+  DATABASE_URL: ""  # Override via Secret in production
+  # Redis
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  # CORS
+  CORS_ORIGIN: "https://app.fitnessstudio.com"
+  # BullMQ
+  BULLMQ_REDIS_HOST: "redis-service"
+  BULLMQ_REDIS_PORT: "6379"

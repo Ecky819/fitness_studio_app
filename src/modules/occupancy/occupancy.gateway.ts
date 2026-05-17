@@ -69,13 +69,14 @@ export class OccupancyGateway
   }
 
   broadcast(tenantId: string, count: number) {
-    const payload = JSON.stringify({
-      type: 'occupancy_update',
-      tenantId,
-      count,
-      timestamp: new Date().toISOString(),
-    });
+    this.send(tenantId, JSON.stringify({ type: 'occupancy_update', tenantId, count, timestamp: new Date().toISOString() }));
+  }
 
+  broadcastCapacityAlert(tenantId: string, count: number, capacity: number, percentage: number) {
+    this.send(tenantId, JSON.stringify({ type: 'capacity_alert', tenantId, count, capacity, percentage, timestamp: new Date().toISOString() }));
+  }
+
+  private send(tenantId: string, payload: string) {
     this.clients.forEach((client) => {
       if (client.tenantId === tenantId && client.ws.readyState === WebSocket.OPEN) {
         client.ws.send(payload);
