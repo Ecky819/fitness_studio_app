@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyA1TI6XgkI23q1ckhQzlk8LT9xkEX-X_SI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>719143109448</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.fitnessStudioAccess</string>
+	<key>PROJECT_ID</key>
+	<string>fitness-studio-app-17a8d</string>
+	<key>STORAGE_BUCKET</key>
+	<string>fitness-studio-app-17a8d.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:719143109448:ios:060a83c79927787deea97d</string>
+</dict>
+</plist>
