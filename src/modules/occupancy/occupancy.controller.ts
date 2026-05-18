@@ -8,11 +8,11 @@ import { OccupancyService } from './occupancy.service';
 
 class CameraEventDto {
   @IsString()
-  cameraId: string;
+  cameraId!: string;
 
   @IsNumber()
   @Min(0)
-  count: number;
+  count!: number;
 
   @IsOptional()
   @IsNumber()

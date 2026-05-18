@@ -175,12 +175,15 @@ class LogFilter {
   final String? doorId;
   final DateTime? dateFrom;
   final DateTime? dateTo;
+  // null = all, 'GRANTED' or 'DENIED' for filtered view
+  final String? status;
 
   const LogFilter({
     this.userSearch = '',
     this.doorId,
     this.dateFrom,
     this.dateTo,
+    this.status,
   });
 
   static const _unset = Object();
@@ -190,6 +193,7 @@ class LogFilter {
     Object? doorId = _unset,
     Object? dateFrom = _unset,
     Object? dateTo = _unset,
+    Object? status = _unset,
   }) =>
       LogFilter(
         userSearch: userSearch ?? this.userSearch,
@@ -197,8 +201,8 @@ class LogFilter {
         dateFrom: identical(dateFrom, _unset)
             ? this.dateFrom
             : dateFrom as DateTime?,
-        dateTo:
-            identical(dateTo, _unset) ? this.dateTo : dateTo as DateTime?,
+        dateTo: identical(dateTo, _unset) ? this.dateTo : dateTo as DateTime?,
+        status: identical(status, _unset) ? this.status : status as String?,
       );
 }
 
@@ -213,6 +217,8 @@ class LogsNotifier extends AsyncNotifier<List<AccessLog>> {
       doorId: _filter.doorId,
       dateFrom: _filter.dateFrom?.toIso8601String().split('T').first,
       dateTo: _filter.dateTo?.toIso8601String().split('T').first,
+      userSearch: _filter.userSearch.isNotEmpty ? _filter.userSearch : null,
+      status: _filter.status,
     );
     final list = data['data'] as List? ?? [];
     return list.map((e) {

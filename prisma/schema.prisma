@@ -60,8 +60,9 @@ model Tenant {
 
   // Stripe Connect — each tenant collects payments into their own account.
   // Platform earns via application_fee_amount on each transaction.
-  stripeCustomerId  String?  // Platform-level Stripe customer
-  stripeAccountId   String?  // Connected account (Express/Standard)
+  stripeCustomerId         String?  // Platform-level Stripe customer
+  stripeAccountId          String?  // Connected account (Express/Standard)
+  stripeSaasSubscriptionId String?  // Platform SaaS billing (operator pays us)
 
   trialEndsAt DateTime?
   createdAt   DateTime  @default(now())
@@ -343,4 +344,104 @@ model PricingRule {
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId, isActive])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 5 — Retention AI
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum RetentionTriggerType {
+  CHURN_SCORE_THRESHOLD   // fires when churn score ≥ minChurnScore
+  DAYS_INACTIVE           // fires when member had no GRANTED event for N days
+  SUBSCRIPTION_EXPIRING   // fires N days before subscription validUntil
+}
+
+enum RetentionExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Tenant-configurable multi-step retention workflow definition.
+// steps: JSON array of RetentionStep objects (see retention.dto.ts).
+model RetentionWorkflow {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+
+  triggerType      RetentionTriggerType
+  minChurnScore    Int?    // CHURN_SCORE_THRESHOLD: fire when score ≥ this
+  minDaysInactive  Int?    // DAYS_INACTIVE: fire after N days without visit
+  daysBeforeExpiry Int?    // SUBSCRIPTION_EXPIRING: fire N days before expiry
+
+  steps Json // RetentionStep[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  executions RetentionExecution[]
+
+  @@index([tenantId, isActive])
+}
+
+// Tracks one execution of a workflow for a specific user.
+model RetentionExecution {
+  id          String                   @id @default(uuid())
+  workflowId  String
+  workflow    RetentionWorkflow        @relation(fields: [workflowId], references: [id])
+  userId      String
+  tenantId    String
+  status      RetentionExecutionStatus @default(PENDING)
+  currentStep Int                      @default(0)
+  context     Json                     @default("{}") // snapshot at trigger time
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([tenantId, status])
+  @@index([userId])
+  @@index([workflowId, userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 5 — Edge Layer / Offline Sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum EdgeEventType {
+  ACCESS_GRANTED
+  ACCESS_DENIED
+  DOOR_FORCED_OPEN
+  DOOR_HELD_OPEN
+  DEVICE_REBOOTED
+  FIRMWARE_UPDATED
+}
+
+enum EdgeSyncStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DUPLICATE
+}
+
+// Buffered access events from offline edge devices.
+// idempotencyKey (device-generated UUID) prevents double-processing on replay.
+model EdgeSyncEvent {
+  id             String        @id @default(uuid())
+  tenantId       String
+  deviceId       String
+  idempotencyKey String        @unique
+  eventType      EdgeEventType
+  payload        Json          // raw event payload from device
+  occurredAt     DateTime      // when the event happened on-device (offline time)
+  status         EdgeSyncStatus @default(PENDING)
+  processedAt    DateTime?
+  error          String?
+  retryCount     Int           @default(0)
+  createdAt      DateTime      @default(now())
+
+  @@index([tenantId, status])
+  @@index([deviceId, occurredAt])
 }

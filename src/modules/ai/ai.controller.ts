@@ -36,10 +36,29 @@ export class AiController {
     return this.aiService.computeAndCacheChurnRisk(this.tenantCtx.tenantId);
   }
 
-  // GET /api/ai/anomalies
+  // GET /api/ai/anomalies — all anomaly types including tailgating and ghosts
   @Get('anomalies')
   @RequireFeature(FeatureFlag.ANOMALY_DETECTION)
   detectAnomalies() {
     return this.aiService.detectAnomalies(this.tenantCtx.tenantId);
+  }
+
+  // GET /api/ai/tailgating — detailed tailgating incidents (Admin only)
+  @Get('tailgating')
+  @Roles(Role.Admin)
+  @RequireFeature(FeatureFlag.TAILGATING_DETECTION)
+  detectTailgating() {
+    return this.aiService.detectTailgating(this.tenantCtx.tenantId);
+  }
+
+  // GET /api/ai/ghost-members?limit=50 — members with active subscription but no visits
+  @Get('ghost-members')
+  @Roles(Role.Admin)
+  @RequireFeature(FeatureFlag.TAILGATING_DETECTION)
+  detectGhostMembers(@Query('limit') limit?: string) {
+    return this.aiService.detectGhostMembers(
+      this.tenantCtx.tenantId,
+      limit ? Number(limit) : 50,
+    );
   }
 }

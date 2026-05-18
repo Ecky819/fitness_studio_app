@@ -26,7 +26,7 @@ export class HardwareService {
     brivo: BrivoAdapter,
     tapkey: TapkeyAdapter,
   ) {
-    this.adapters = new Map([
+    this.adapters = new Map<string, IHardwareAdapter>([
       [ble.name, ble],
       [kisi.name, kisi],
       [brivo.name, brivo],

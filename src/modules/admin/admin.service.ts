@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminLogsQueryDto, AdminUsersQueryDto, FirmwareUpdateDto, ProvisionDeviceDto } from './dto/admin-query.dto';
-import { AccessEventStatus, SubscriptionStatus } from '@prisma/client';
+import { AccessEventStatus, Prisma, SubscriptionStatus } from '@prisma/client';
 import { MqttService } from '../mqtt/mqtt.service';
 import { randomUUID } from 'crypto';
 
@@ -174,42 +174,64 @@ export class AdminService {
   }
 
   // ── Logs ───────────────────────────────────────────────────────────────────
+  //
+  // Queries AccessAttempt (the full audit trail) instead of AccessEvent so that
+  // denied attempts without a valid grant — replay attacks, expired memberships,
+  // unknown tokens — are visible to the operator. AccessEvent only exists when a
+  // grant FK was available; AccessAttempt captures every single attempt.
 
   async getLogs(tenantId: string, query: AdminLogsQueryDto) {
-    // Scope to users of this tenant
-    const tenantUserIds = await this.prisma.user
-      .findMany({ where: { tenantId }, select: { id: true } })
-      .then((rows) => rows.map((r) => r.id));
-
-    const where: Record<string, unknown> = { userId: { in: tenantUserIds } };
-
-    if (query.userId) where.userId = query.userId;
-    if (query.doorId) where.doorId = query.doorId;
-
-    if (query.dateFrom || query.dateTo) {
-      where.createdAt = {
-        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-        ...(query.dateTo
-          ? { lte: new Date(new Date(query.dateTo).setHours(23, 59, 59, 999)) }
+    // Resolve users for this tenant, optionally filtered by email search.
+    const users = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        ...(query.userSearch
+          ? { email: { contains: query.userSearch, mode: 'insensitive' } }
           : {}),
-      };
+        ...(query.userId ? { id: query.userId } : {}),
+      },
+      select: { id: true, email: true },
+    });
+
+    // If a search term was provided but no users matched, return early.
+    if ((query.userSearch || query.userId) && users.length === 0) {
+      return { total: 0, limit: query.limit ?? 50, offset: query.offset ?? 0, data: [] };
     }
 
-    const [total, events] = await Promise.all([
-      this.prisma.accessEvent.count({ where }),
-      this.prisma.accessEvent.findMany({
+    const userMap = new Map(users.map((u) => [u.id, u.email]));
+    const userIds = [...userMap.keys()];
+
+    const where: Prisma.AccessAttemptWhereInput = {
+      userId: { in: userIds },
+      ...(query.doorId ? { doorId: query.doorId } : {}),
+      ...(query.status !== undefined ? { success: query.status === 'GRANTED' } : {}),
+      ...((query.dateFrom || query.dateTo)
+        ? {
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo
+                ? { lte: new Date(new Date(query.dateTo).setHours(23, 59, 59, 999)) }
+                : {}),
+            },
+          }
+        : {}),
+    };
+
+    const [total, attempts] = await Promise.all([
+      this.prisma.accessAttempt.count({ where }),
+      this.prisma.accessAttempt.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: query.offset ?? 0,
         take: query.limit ?? 50,
         select: {
           id: true,
-          status: true,
-          reason: true,
+          userId: true,
           doorId: true,
+          grantId: true,
+          success: true,
+          reason: true,
           createdAt: true,
-          user: { select: { id: true, email: true } },
-          accessGrant: { select: { id: true } },
         },
       }),
     ]);
@@ -218,15 +240,15 @@ export class AdminService {
       total,
       limit: query.limit ?? 50,
       offset: query.offset ?? 0,
-      data: events.map((e) => ({
-        id: e.id,
-        userId: e.user.id,
-        userEmail: e.user.email,
-        grantId: e.accessGrant.id,
-        doorId: e.doorId,
-        status: e.status,
-        reason: e.reason,
-        timestamp: e.createdAt,
+      data: attempts.map((a) => ({
+        id: a.id,
+        userId: a.userId,
+        userEmail: userMap.get(a.userId) ?? a.userId,
+        grantId: a.grantId,
+        doorId: a.doorId,
+        status: a.success ? 'GRANTED' : 'DENIED',
+        reason: a.reason,
+        timestamp: a.createdAt,
       })),
     };
   }

@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class UnlockDoorDto {
   @IsString()
-  doorId: string;
+  doorId!: string;
 
   @IsOptional()
   @IsNumber()

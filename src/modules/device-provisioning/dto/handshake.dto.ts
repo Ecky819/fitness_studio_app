@@ -3,10 +3,10 @@ import { IsString, IsOptional, Length } from 'class-validator';
 export class DeviceHandshakeDto {
   @IsString()
   @Length(36, 36) // UUID
-  provisioningToken: string;
+  provisioningToken!: string;
 
   @IsString()
-  doorId: string;
+  doorId!: string;
 
   @IsOptional()
   @IsString()

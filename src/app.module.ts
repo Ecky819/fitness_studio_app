@@ -23,6 +23,10 @@ import { PricingModule } from './modules/pricing/pricing.module';
 // Phase 4 — Hardware
 import { AccessHardwareModule } from './modules/access-hardware/access-hardware.module';
 import { DeviceProvisioningModule } from './modules/device-provisioning/device-provisioning.module';
+// Phase 5 — Retention AI, Edge Sync, Tier Gating
+import { RetentionModule } from './modules/retention/retention.module';
+import { EdgeModule } from './modules/edge/edge.module';
+import { TierModule } from './modules/tier/tier.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { LoggerModule } from './common/logger/logger.module';
@@ -67,6 +71,10 @@ import { LoggerModule } from './common/logger/logger.module';
     // Phase 4 — Hardware
     AccessHardwareModule,
     DeviceProvisioningModule,
+    // Phase 5 — Retention AI, Edge Sync, Tier Gating
+    RetentionModule,
+    EdgeModule,
+    TierModule,
   ],
 })
 export class AppModule implements NestModule {
@@ -78,6 +86,7 @@ export class AppModule implements NestModule {
         { path: 'ready', method: RequestMethod.GET },
         { path: 'api/super-admin/(.*)', method: RequestMethod.ALL },
         { path: 'api/devices/handshake', method: RequestMethod.POST },
+        { path: 'api/tier/webhook', method: RequestMethod.POST },
       )
       .forRoutes('*');
   }

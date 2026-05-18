@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class AdminLogsQueryDto {
@@ -17,6 +17,15 @@ export class AdminLogsQueryDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: { value: string }) => value?.trim())
+  userSearch?: string;
+
+  @IsOptional()
+  @IsIn(['GRANTED', 'DENIED'])
+  status?: 'GRANTED' | 'DENIED';
 
   @IsOptional()
   @Type(() => Number)
@@ -58,10 +67,10 @@ export class BlockUserDto {
 
 export class FirmwareUpdateDto {
   @IsString()
-  firmwareUrl: string;
+  firmwareUrl!: string;
 
   @IsString()
-  version: string;
+  version!: string;
 
   @IsOptional()
   @IsString()
@@ -70,13 +79,13 @@ export class FirmwareUpdateDto {
 
 export class ProvisionDeviceDto {
   @IsString()
-  doorId: string;
+  doorId!: string;
 
   @IsString()
-  name: string;
+  name!: string;
 
   @IsString()
-  location: string;
+  location!: string;
 
   @IsOptional()
   @IsString()

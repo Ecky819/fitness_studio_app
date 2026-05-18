@@ -31,6 +31,8 @@
         "@nestjs/throttler": "^6.5.0",
         "@nestjs/websockets": "^10.4.22",
         "@prisma/client": "^5.0.0",
+        "@sentry/nestjs": "^8.55.2",
+        "@sentry/profiling-node": "^8.55.2",
         "@types/pdfkit": "^0.14.0",
         "bcrypt": "^5.1.0",
         "bullmq": "^5.76.8",
@@ -41,16 +43,14 @@
         "firebase-admin": "^13.10.0",
         "ioredis": "^5.3.1",
         "mqtt": "^5.15.1",
+        "nest-winston": "^1.10.0",
         "nodemailer": "^8.0.7",
         "pdfkit": "^0.14.0",
         "prisma": "^5.0.0",
         "reflect-metadata": "^0.1.13",
         "stripe": "^12.0.0",
-        "ws": "^8.20.1",
-        "winston": "^3.14.0",
-        "nest-winston": "^1.10.0",
-        "@sentry/nestjs": "^8.0.0",
-        "@sentry/profiling-node": "^8.0.0"
+        "winston": "^3.19.0",
+        "ws": "^8.20.1"
     },
     "devDependencies": {
         "@nestjs/cli": "^10.0.0",

@@ -71,7 +71,9 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                           _applyFilter(_filter.copyWith(dateFrom: v)),
                       onDateToChanged: (v) =>
                           _applyFilter(_filter.copyWith(dateTo: v)),
-                      onClear: () {
+                      onStatusChanged: (v) =>
+                          _applyFilter(_filter.copyWith(status: v)),
+                    onClear: () {
                         _userSearchController.clear();
                         _applyFilter(const LogFilter());
                       },
@@ -124,6 +126,7 @@ class _FilterBar extends StatelessWidget {
   final ValueChanged<String?> onDoorChanged;
   final ValueChanged<DateTime?> onDateFromChanged;
   final ValueChanged<DateTime?> onDateToChanged;
+  final ValueChanged<String?> onStatusChanged;
   final VoidCallback onClear;
 
   const _FilterBar({
@@ -134,6 +137,7 @@ class _FilterBar extends StatelessWidget {
     required this.onDoorChanged,
     required this.onDateFromChanged,
     required this.onDateToChanged,
+    required this.onStatusChanged,
     required this.onClear,
   });
 
@@ -142,7 +146,8 @@ class _FilterBar extends StatelessWidget {
     final hasActiveFilter = filter.userSearch.isNotEmpty ||
         filter.doorId != null ||
         filter.dateFrom != null ||
-        filter.dateTo != null;
+        filter.dateTo != null ||
+        filter.status != null;
 
     return Wrap(
       spacing: AppSpacing.sm,
@@ -199,6 +204,10 @@ class _FilterBar extends StatelessWidget {
             );
             onDateToChanged(picked);
           },
+        ),
+        _StatusFilter(
+          selected: filter.status,
+          onChanged: onStatusChanged,
         ),
         if (hasActiveFilter)
           TextButton.icon(
@@ -292,6 +301,65 @@ class _DatePickerButton extends StatelessWidget {
         side: const BorderSide(color: AppColors.border),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
+    );
+  }
+}
+
+class _StatusFilter extends StatelessWidget {
+  final String? selected;
+  final ValueChanged<String?> onChanged;
+
+  static const _options = [
+    (label: 'All', value: null, icon: Icons.list_rounded),
+    (label: 'Granted', value: 'GRANTED', icon: Icons.check_circle_outline_rounded),
+    (label: 'Denied', value: 'DENIED', icon: Icons.cancel_outlined),
+  ];
+
+  const _StatusFilter({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: _options.map((opt) {
+        final isSelected = selected == opt.value;
+        final color = opt.value == 'GRANTED'
+            ? AppColors.success
+            : opt.value == 'DENIED'
+                ? AppColors.error
+                : AppColors.textSecondary;
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: FilterChip(
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(opt.icon, size: 14,
+                    color: isSelected ? color : AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(opt.label),
+              ],
+            ),
+            selected: isSelected,
+            onSelected: (_) =>
+                onChanged(isSelected ? null : opt.value),
+            selectedColor: color.withValues(alpha: 0.15),
+            checkmarkColor: color,
+            labelStyle: AppTextStyles.body.copyWith(
+              color: isSelected ? color : AppColors.textSecondary,
+              fontSize: 13,
+            ),
+            backgroundColor: AppColors.surfaceVariant,
+            side: BorderSide(
+              color: isSelected
+                  ? color.withValues(alpha: 0.5)
+                  : AppColors.border,
+            ),
+            showCheckmark: false,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          ),
+        );
+      }).toList(),
     );
   }
 }

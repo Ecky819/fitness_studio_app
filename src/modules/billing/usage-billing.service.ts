@@ -8,7 +8,7 @@ import { IsString } from 'class-validator';
 export class EnableMeteredBillingDto {
   /** Stripe subscription item ID (si_xxx) for the metered access price */
   @IsString()
-  stripeMeteredItemId: string;
+  stripeMeteredItemId!: string;
 }
 
 /**

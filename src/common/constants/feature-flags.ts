@@ -25,6 +25,15 @@ export const FeatureFlag = {
 
   /** Advanced analytics dashboards */
   ADVANCED_ANALYTICS: 'ADVANCED_ANALYTICS',
+
+  /** Tailgating and ghost-member security detection */
+  TAILGATING_DETECTION: 'TAILGATING_DETECTION',
+
+  /** Smart retention workflows triggered by AI churn scores */
+  RETENTION_WORKFLOWS: 'RETENTION_WORKFLOWS',
+
+  /** Edge device offline-sync / event-replay pipeline */
+  EDGE_SYNC: 'EDGE_SYNC',
 } as const;
 
 export type FeatureFlagKey = (typeof FeatureFlag)[keyof typeof FeatureFlag];

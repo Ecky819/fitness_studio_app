@@ -266,8 +266,7 @@ export class BillingService {
   }
 
   private async onHardwareCheckoutCompleted(session: Stripe.Checkout.Session) {
-    const { userId, tenantId } = (session.payment_intent_data as any)?.metadata ??
-      session.metadata ?? {};
+    const { userId, tenantId } = session.metadata ?? {};
 
     if (!userId || !tenantId) {
       this.logger.warn(`Hardware checkout missing metadata: ${session.id}`);

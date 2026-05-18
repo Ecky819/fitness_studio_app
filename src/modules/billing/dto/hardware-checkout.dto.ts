@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class HardwareCheckoutDto {
   /** Stripe Price ID for the hardware product (configured in Stripe dashboard) */
   @IsString()
-  stripePriceId: string;
+  stripePriceId!: string;
 
   @IsOptional()
   @Type(() => Number)

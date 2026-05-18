@@ -195,6 +195,8 @@ class ApiService {
     String? doorId,
     String? dateFrom,
     String? dateTo,
+    String? userSearch,
+    String? status,
     int limit = 50,
     int offset = 0,
   }) =>
@@ -203,6 +205,8 @@ class ApiService {
         if (doorId != null) 'doorId': doorId,
         if (dateFrom != null) 'dateFrom': dateFrom,
         if (dateTo != null) 'dateTo': dateTo,
+        if (userSearch != null && userSearch.isNotEmpty) 'userSearch': userSearch,
+        if (status != null) 'status': status,
         'limit': '$limit',
         'offset': '$offset',
       });

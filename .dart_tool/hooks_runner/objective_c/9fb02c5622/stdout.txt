@@ -1,0 +1,60 @@
+Running `(cd /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/77/07c79j4j79754418nqncrvk00000gn/T/ PATH=/Users/marcoeggert/.nvm/versions/node/v20.20.0/bin:/Users/marcoeggert/development/flutter/bin:/Users/marcoeggert/.gem/ruby/3.4.4/bin:/Users/marcoeggert/.rubies/ruby-3.4.4/lib/ruby/gems/3.4.0/bin:/Users/marcoeggert/.rubies/ruby-3.4.4/bin:/Users/marcoeggert/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/marcoeggert/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Users/marcoeggert/development/Flutter/bin/:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/marcoeggert/development/flutter/bin:/Users/marcoeggert/development/Flutter/bin/:/Users/marcoeggert/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/marcoeggert/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Users/marcoeggert/.nvm/versions/node/v20.20.0/bin:/Users/marcoeggert/.rvm/bin:/Users/marcoeggert/.pub-cache/bin:/Users/marcoeggert/.rvm/bin:/Users/marcoeggert/.pub-cache/bin HOME=/Users/marcoeggert /Users/marcoeggert/development/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/package_config.json /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/objective_c/9fb02c5622/hook.dill --config=/Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/objective_c/9fb02c5622/input.json )`.
+INFO: 2026-05-18 10:37:07.785913: Running `which clang`.
+
+INFO: 2026-05-18 10:37:07.808439: Running `/usr/bin/clang --version`.
+
+INFO: 2026-05-18 10:37:07.979663: Running `/usr/bin/clang --version`.
+
+INFO: 2026-05-18 10:37:08.014312: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-18 10:37:08.014851: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.c.o
+
+INFO: 2026-05-18 10:37:08.015155: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/test/util.c -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/test/util.c.o
+
+INFO: 2026-05-18 10:37:08.015331: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-18 10:37:08.015582: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o
+
+INFO: 2026-05-18 10:37:08.015729: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/observer.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o
+
+INFO: 2026-05-18 10:37:08.015882: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o
+
+INFO: 2026-05-18 10:37:08.016029: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o
+
+INFO: 2026-05-18 10:37:08.016279: Running: /usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 -x objective-c -fobjc-arc -c /Users/marcoeggert/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-18 10:37:08.157534: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.c.o
+
+INFO: 2026-05-18 10:37:08.157932: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-18 10:37:08.167035: 
+INFO: 2026-05-18 10:37:08.167094: 
+INFO: 2026-05-18 10:37:08.167114: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/test/util.c.o
+
+INFO: 2026-05-18 10:37:08.167441: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o
+
+INFO: 2026-05-18 10:37:08.171374: 
+INFO: 2026-05-18 10:37:08.171425: 
+INFO: 2026-05-18 10:37:08.171443: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o
+
+INFO: 2026-05-18 10:37:08.488766: 
+INFO: 2026-05-18 10:37:08.488835: 
+INFO: 2026-05-18 10:37:08.488856: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o
+
+INFO: 2026-05-18 10:37:08.497339: 
+INFO: 2026-05-18 10:37:08.497381: 
+INFO: 2026-05-18 10:37:08.497401: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o
+
+INFO: 2026-05-18 10:37:08.499342: 
+INFO: 2026-05-18 10:37:08.499372: 
+
+INFO: 2026-05-18 10:37:08.499389: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-18 10:37:08.520285: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-18 10:37:08.520648: Running: /usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=12 /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/include/dart_api_dl.c.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.c.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/test/util.c.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/input_stream_adapter.m.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c.m.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/observer.m.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/ns_number.m.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/protocol.m.o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/obj/src/objective_c_bindings_generated.m.o -o /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/objective_c.dylib
+
+INFO: 2026-05-18 10:37:08.695390: 
+INFO: 2026-05-18 10:37:08.695476: 
+INFO: 2026-05-18 10:37:08.695503: Generated /Users/marcoeggert/Desktop/FLUTTER_Projekte/fitness_studio_app/.dart_tool/hooks_runner/shared/objective_c/build/9fb02c5622/objective_c.dylib
+

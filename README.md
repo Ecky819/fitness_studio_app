@@ -608,3 +608,11 @@ Was fehlt
 Sofortmaßnahme (niedrigster Aufwand, höchster Return): Das features-JSON-Feld in TenantConfig ist bereits vorhanden. Dort können AI-Module (churnRisk, anomalyDetection, dynamicPricing) als booleans gesetzt und im Backend per Guard geprüft werden → Feature-Gating ohne neues Datenmodell.
 
 ---
+
+Offene Punkte mit höchster Priorität:
+
+Incident Logging — Backend-Modul fehlt (nur Frontend-Seite vorhanden)
+AI-Module — ai.service.ts ist leer/Placeholder, Tailgating/Ghost Detection fehlt komplett
+Retention AI — kein Modul vorhanden (Churn Prediction, Smart Workflows)
+Edge Layer — kein vollständiges Offline-Sync / Event-Replay System
+SaaS Tier Gating — Feature-Flags existieren, aber Tier-basiertes Billing-Management fehlt.
